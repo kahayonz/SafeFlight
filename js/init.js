@@ -5,7 +5,7 @@ let airports = [];
 let isBottomUIExpanded = false;
 let map;
 
-// Initialize event listeners
+// initialize event listeners
 document.addEventListener('DOMContentLoaded', () => {
     initMap();
     initializeEventListeners();

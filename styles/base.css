@@ -136,7 +136,7 @@
     will-change: fill-opacity, opacity, stroke-width;
 }
 
-/* remove map cluster */
+/* remove leaflet map cluster */
 .marker-cluster,
 .marker-cluster div {
     display: none;

@@ -47,14 +47,14 @@ async function loadGeoJSON(retryCount = 3) {
             const data = await response.json();
             if (!data || !data.features) throw new Error('Invalid GeoJSON data');
 
-            // Process the data
+            // filtering to risk levels
             data.features.forEach(feature => {
                 feature.properties.riskLevel = ['low', 'medium', 'high'][Math.floor(Math.random() * 3)];
                 feature.properties.disease = 'Sample Disease';
                 feature.properties.cases = Math.floor(Math.random() * 1000);
             });
 
-            // Create the layer
+            // geojson highlight layers
             geojsonLayer = L.geoJSON(data, {
                 style: (feature) => getCountryStyle(feature.properties.riskLevel),
                 onEachFeature: onEachFeature,
