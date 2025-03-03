@@ -61,4 +61,3 @@ async function updateNewsPanel(countryName) {
     }
 }
 
-// ... rest of news related functions ...

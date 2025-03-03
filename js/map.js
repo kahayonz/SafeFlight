@@ -31,25 +31,52 @@ function initMap() {
     loadGeoJSON();
 }
 
-function loadGeoJSON() {
-    fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson')
-        .then(response => response.json())
-        .then(data => {
+async function loadGeoJSON(retryCount = 3) {
+    const loadingEl = document.getElementById('map-loading');
+    loadingEl.classList.add('active');
+    loadingEl.textContent = 'Loading map data...';
+
+    const PRIMARY_URL = 'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson';
+    const BACKUP_URL = 'https://datahub.io/core/geo-countries/r/countries.geojson';
+
+    for (let i = 0; i < retryCount; i++) {
+        try {
+            const response = await fetch(i === 0 ? PRIMARY_URL : BACKUP_URL);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            
+            const data = await response.json();
+            if (!data || !data.features) throw new Error('Invalid GeoJSON data');
+
+            // Process the data
             data.features.forEach(feature => {
                 feature.properties.riskLevel = ['low', 'medium', 'high'][Math.floor(Math.random() * 3)];
                 feature.properties.disease = 'Sample Disease';
                 feature.properties.cases = Math.floor(Math.random() * 1000);
             });
 
+            // Create the layer
             geojsonLayer = L.geoJSON(data, {
                 style: (feature) => getCountryStyle(feature.properties.riskLevel),
                 onEachFeature: onEachFeature,
-                smoothFactor: 1.5,
                 bubblingMouseEvents: false
             }).addTo(map);
 
             filterCountries('all');
-        });
+            loadingEl.classList.remove('active');
+            return;
+
+        } catch (error) {
+            console.error(`Attempt ${i + 1} failed:`, error);
+            loadingEl.textContent = `Retrying... (${i + 1}/${retryCount})`;
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 1 sec wait
+        }
+    }
+
+    // if no workie, show error and enable manual retry
+    loadingEl.innerHTML = `
+        Failed to load map data. 
+        <button onclick="loadGeoJSON()" class="retry-btn">Try Again</button>
+    `;
 }
 
 // Map styles and utilities
@@ -113,5 +140,3 @@ function updateInfoPanel(properties) {
     document.querySelector('.info-value.cases').textContent = properties.cases || '0';
     updateNewsPanel(countryName);
 }
-
-initMap();

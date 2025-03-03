@@ -1,4 +1,4 @@
-// State variables
+// initialize variables
 let geojsonLayer;
 let currentRiskFilter = 'all';
 let airports = [];
@@ -10,17 +10,24 @@ document.addEventListener('DOMContentLoaded', () => {
     initMap();
     initializeEventListeners();
     loadAirportsData();
-    initializeDarkMode();
 });
 
 function initializeEventListeners() {
-    // Add all event listeners from the original script.js
     const searchInput = document.getElementById('search');
     const searchBtn = document.getElementById('searchBtn');
     
     searchInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             performSearch(this.value.trim());
+        }
+    });
+
+    searchInput.addEventListener('input', function() {
+        const clearBtn = this.parentElement.querySelector('.clear-search');
+        if (this.value) {
+            clearBtn?.classList.add('visible');
+        } else {
+            clearBtn?.classList.remove('visible');
         }
     });
 
@@ -35,6 +42,7 @@ function initializeEventListeners() {
     });
 
     document.getElementById('resetZoom').addEventListener('click', () => {
+        cleanupMarkers();
         map.setView([20, 0], 3);
         if (geojsonLayer) {
             geojsonLayer.eachLayer(layer => geojsonLayer.resetStyle(layer));
@@ -47,6 +55,13 @@ function initializeEventListeners() {
 
     initializeBottomUIHandlers();
     initializeDarkMode();
+}
+
+function cleanupMarkers() {
+    if (window.currentMarker) {
+        map.removeLayer(window.currentMarker);
+        window.currentMarker = null;
+    }
 }
 
 function initializeBottomUIHandlers() {
@@ -104,6 +119,7 @@ function resetInfoPanel() {
     document.querySelector('.info-value.cases').textContent = '-';
 }
 
+/*airport location for search*/
 function loadAirportsData() {
     fetch('https://raw.githubusercontent.com/algolia/datasets/master/airports/airports.json')
         .then(response => response.json())
