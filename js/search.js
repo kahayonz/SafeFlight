@@ -1,3 +1,6 @@
+/*FUCKFUCKFUCK AYOKO NA */
+
+
 function fuzzyMatch(pattern, str) {
     pattern = pattern.toLowerCase();
     str = str.toLowerCase();
