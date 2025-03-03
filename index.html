@@ -6,8 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SafeFlight - Disease Tracking Map</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
@@ -23,8 +21,12 @@
       
       <div class="controls-wrapper">
         <div class="search-box">
-          <input type="text" placeholder="Search location..." id="search">
+          <input type="text" placeholder="Search city, country, or flight number..." id="search">
         </div>
+
+        <button id="resetZoom" class="reset-zoom-btn" title="Reset map view">
+          🗺️
+        </button>
 
         <div class="mode-toggle">
           <button id="darkModeToggle" class="mode-btn">
@@ -35,6 +37,7 @@
 
       <div class="risk-level">
         <div class="risk-buttons">
+          <button class="risk-btn active" data-risk="all">All</button>
           <button class="risk-btn" data-risk="low">Low</button>
           <button class="risk-btn" data-risk="medium">Medium</button>
           <button class="risk-btn" data-risk="high">High</button>
@@ -66,7 +69,6 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
