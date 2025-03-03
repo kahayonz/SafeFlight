@@ -1,0 +1,196 @@
+{
+  "cities": {
+    "London": {
+      "country": "United Kingdom",
+      "coordinates": [51.5074, -0.1278],
+      "airports": ["LHR", "LGW", "STN", "LCY", "LTN"]
+    },
+    "Paris": {
+      "country": "France",
+      "coordinates": [48.8566, 2.3522],
+      "airports": ["CDG", "ORY", "BVA"]
+    },
+    "New York": {
+      "country": "United States",
+      "coordinates": [40.7128, -74.0060],
+      "airports": ["JFK", "LGA", "EWR"]
+    },
+    "Tokyo": {
+      "country": "Japan",
+      "coordinates": [35.6762, 139.6503],
+      "airports": ["HND", "NRT"]
+    },
+    "Dubai": {
+      "country": "United Arab Emirates",
+      "coordinates": [25.2048, 55.2708],
+      "airports": ["DXB", "DWC"]
+    },
+    "Singapore": {
+      "country": "Singapore",
+      "coordinates": [1.3521, 103.8198],
+      "airports": ["SIN", "XSP"]
+    },
+    "Sydney": {
+      "country": "Australia",
+      "coordinates": [-33.8688, 151.2093],
+      "airports": ["SYD", "BWU"]
+    },
+    "Mumbai": {
+      "country": "India",
+      "coordinates": [19.0760, 72.8777],
+      "airports": ["BOM"]
+    },
+    "Istanbul": {
+      "country": "Turkey",
+      "coordinates": [41.0082, 28.9784],
+      "airports": ["IST", "SAW"]
+    },
+    "Cairo": {
+      "country": "Egypt",
+      "coordinates": [30.0444, 31.2357],
+      "airports": ["CAI"]
+    },
+    "Los Angeles": {
+      "country": "United States",
+      "coordinates": [34.0522, -118.2437],
+      "airports": ["LAX", "BUR", "LGB", "SNA"]
+    },
+    "Chicago": {
+      "country": "United States",
+      "coordinates": [41.8781, -87.6298],
+      "airports": ["ORD", "MDW"]
+    },
+    "Hong Kong": {
+      "country": "China",
+      "coordinates": [22.3193, 114.1694],
+      "airports": ["HKG"]
+    },
+    "Bangkok": {
+      "country": "Thailand",
+      "coordinates": [13.7563, 100.5018],
+      "airports": ["BKK", "DMK"]
+    },
+    "Seoul": {
+      "country": "South Korea",
+      "coordinates": [37.5665, 126.9780],
+      "airports": ["ICN", "GMP"]
+    },
+    "Shanghai": {
+      "country": "China",
+      "coordinates": [31.2304, 121.4737],
+      "airports": ["PVG", "SHA"]
+    },
+    "Melbourne": {
+      "country": "Australia",
+      "coordinates": [-37.8136, 144.9631],
+      "airports": ["MEL", "AVV", "MEB"]
+    },
+    "Delhi": {
+      "country": "India",
+      "coordinates": [28.6139, 77.2090],
+      "airports": ["DEL"]
+    },
+    "Moscow": {
+      "country": "Russia",
+      "coordinates": [55.7558, 37.6173],
+      "airports": ["SVO", "DME", "VKO"]
+    },
+    "Frankfurt": {
+      "country": "Germany",
+      "coordinates": [50.1109, 8.6821],
+      "airports": ["FRA", "HHN"]
+    },
+    "Madrid": {
+      "country": "Spain",
+      "coordinates": [40.4168, -3.7038],
+      "airports": ["MAD"]
+    },
+    "Barcelona": {
+      "country": "Spain",
+      "coordinates": [41.3851, 2.1734],
+      "airports": ["BCN"]
+    },
+    "Rome": {
+      "country": "Italy",
+      "coordinates": [41.9028, 12.4964],
+      "airports": ["FCO", "CIA"]
+    },
+    "Milan": {
+      "country": "Italy",
+      "coordinates": [45.4642, 9.1900],
+      "airports": ["MXP", "LIN", "BGY"]
+    },
+    "Amsterdam": {
+      "country": "Netherlands",
+      "coordinates": [52.3676, 4.9041],
+      "airports": ["AMS"]
+    },
+    "Vienna": {
+      "country": "Austria",
+      "coordinates": [48.2082, 16.3738],
+      "airports": ["VIE"]
+    },
+    "Toronto": {
+      "country": "Canada",
+      "coordinates": [43.6532, -79.3832],
+      "airports": ["YYZ", "YTZ"]
+    },
+    "Vancouver": {
+      "country": "Canada",
+      "coordinates": [49.2827, -123.1207],
+      "airports": ["YVR"]
+    },
+    "Mexico City": {
+      "country": "Mexico",
+      "coordinates": [19.4326, -99.1332],
+      "airports": ["MEX"]
+    },
+    "São Paulo": {
+      "country": "Brazil",
+      "coordinates": [-23.5505, -46.6333],
+      "airports": ["GRU", "CGH"]
+    },
+    "Rio de Janeiro": {
+      "country": "Brazil",
+      "coordinates": [-22.9068, -43.1729],
+      "airports": ["GIG", "SDU"]
+    },
+    "Johannesburg": {
+      "country": "South Africa",
+      "coordinates": [-26.2041, 28.0473],
+      "airports": ["JNB", "HLA"]
+    }
+  },
+  "countries": {
+    "United Kingdom": {
+      "capital": "London",
+      "coordinates": [55.3781, -3.4360],
+      "majorCities": ["London", "Manchester", "Birmingham", "Edinburgh"],
+      "mainAirports": ["LHR", "LGW", "MAN"]
+    },
+    "France": {
+      "capital": "Paris",
+      "coordinates": [46.2276, 2.2137],
+      "majorCities": ["Paris", "Lyon", "Marseille", "Toulouse"],
+      "mainAirports": ["CDG", "ORY", "LYS"]
+    },
+    "United States": {
+      "capital": "Washington D.C.",
+      "coordinates": [37.0902, -95.7129],
+      "majorCities": ["New York", "Los Angeles", "Chicago", "Houston"],
+      "mainAirports": ["JFK", "LAX", "ORD"]
+    },
+    "Japan": {
+      "capital": "Tokyo",
+      "coordinates": [36.2048, 138.2529],
+      "majorCities": ["Tokyo", "Osaka", "Yokohama", "Nagoya"],
+      "mainAirports": ["HND", "NRT", "KIX"]
+    },
+    "Australia": {
+      "capital": "Canberra",
+      "coordinates": [-25.2744, 133.7751],
+      "majorCities": ["Sydney", "Melbourne", "Brisbane", "Perth"],
+      "mainAirports": ["SYD", "MEL", "BNE"]
+    }
+  }
+}
