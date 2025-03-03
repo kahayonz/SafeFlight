@@ -1,0 +1,404 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
+}
+
+.container {
+  position: relative;
+  height: 100vh;
+  width: 100vw;
+}
+
+.sidebar {
+  width: 300px;
+  background-color: #f8f9fa;
+  padding: 20px;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+}
+
+.top-ui {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  transform: none;  /* Remove the X-axis transform */
+  z-index: 1000;
+  background: white;
+  padding: 10px 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  width: 300px;
+}
+
+.bottom-ui {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: white;
+  padding: 15px 20px;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 16px 16px 0 0;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.header h1 {
+  color: #2c3e50;
+  margin-bottom: 5px;
+  font-size: 18px;
+}
+
+.header p {
+  color: #7f8c8d;
+  font-size: 12px;
+}
+
+.controls > div {
+  margin-bottom: 25px;
+}
+
+.search-box {
+  margin-bottom: 10px;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.filter-section select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.risk-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+.risk-btn {
+  flex: 1;
+  padding: 5px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #e0e0e0;
+  font-size: 12px;
+  transition: all 0.3s ease;
+}
+
+.risk-btn.active {
+  background-color: #2ecc71;
+  color: white;
+  transform: scale(1.05);
+}
+
+.info-panel {
+  background-color: white;
+  padding: 10px;
+  border-radius: 0;
+  box-shadow: none;
+  max-width: 100%;
+}
+
+.map-container {
+  flex: 1;
+}
+
+#map {
+  height: 100%;
+  width: 100%;
+}
+
+h3 {
+  color: #2c3e50;
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.map-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.8);
+  padding: 10px 20px;
+  border-radius: 4px;
+  display: none;
+  z-index: 1000;
+}
+
+.map-loading.active {
+  display: block;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  text-align: center;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.info-label {
+  font-size: 13px;
+  text-transform: uppercase;
+  color: #666;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-top: 2px;
+}
+
+.popup-content {
+  font-family: 'Poppins', sans-serif;
+  padding: 10px;
+  min-width: 200px;
+}
+
+.popup-title {
+  font-weight: 600;
+  font-size: 16px;
+  color: #2c3e50;
+  margin-bottom: 8px;
+}
+
+.popup-location,
+.popup-disease,
+.popup-cases {
+  font-size: 14px;
+  margin: 4px 0;
+  color: #666;
+}
+
+.popup-location::before {
+  content: "Location: ";
+  font-weight: 500;
+}
+
+.popup-disease::before {
+  content: "Disease: ";
+  font-weight: 500;
+}
+
+.popup-cases::before {
+  content: "Cases: ";
+  font-weight: 500;
+}
+
+/* Dark mode styles */
+body.dark-mode {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+body.dark-mode .top-ui,
+body.dark-mode .bottom-ui,
+body.dark-mode .info-panel {
+  background: #2c2c2c;
+  color: #fff;
+}
+
+body.dark-mode .header h1 {
+  color: #fff;
+}
+
+body.dark-mode .header p {
+  color: #aaa;
+}
+
+body.dark-mode .search-box input {
+  background: #3d3d3d;
+  border-color: #444;
+  color: #fff;
+}
+
+body.dark-mode .risk-btn {
+  background-color: #3d3d3d;
+  color: #ddd;
+}
+
+body.dark-mode .risk-btn.active {
+  background-color: #2ecc71;
+  color: #fff;
+}
+
+body.dark-mode .info-label {
+  color: #aaa;
+}
+
+body.dark-mode .info-value {
+  color: #fff;
+}
+
+/* Map dark mode */
+body.dark-mode .leaflet-tile {
+  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+}
+
+body.dark-mode .leaflet-container {
+  background: #303030;
+}
+
+body.dark-mode .leaflet-popup-content-wrapper,
+body.dark-mode .leaflet-popup-tip {
+  background: #2c2c2c;
+  color: #fff;
+}
+
+body.dark-mode .popup-title {
+  color: #fff;
+}
+
+body.dark-mode .popup-location,
+body.dark-mode .popup-disease,
+body.dark-mode .popup-cases {
+  color: #ddd;
+}
+
+/* Adjust marker clusters for dark mode */
+body.dark-mode .marker-cluster {
+  background: rgba(50, 50, 50, 0.6);
+}
+
+body.dark-mode .marker-cluster div {
+  background: rgba(70, 70, 70, 0.6);
+  color: #fff;
+}
+
+/* Country highlight styles */
+.leaflet-interactive {
+  transition: all 0.2s ease;
+}
+
+/* Add smoother transitions for country interactions */
+.leaflet-interactive {
+    transition: fill-opacity 0.2s ease-in-out, 
+                opacity 0.2s ease-in-out, 
+                stroke-width 0.2s ease-in-out;
+    will-change: fill-opacity, opacity, stroke-width;
+}
+
+/* Remove marker cluster styles as they're no longer needed */
+.marker-cluster,
+.marker-cluster div {
+  display: none;
+}
+
+/* Mode toggle button */
+.controls-wrapper {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.search-box {
+  flex: 1;
+}
+
+.mode-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 4px;
+  background: #f0f0f0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s;
+}
+
+.reset-zoom-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 4px;
+  background: #f0f0f0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s;
+}
+
+body.dark-mode .reset-zoom-btn {
+  background: #3d3d3d;
+  color: #fff;
+}
+
+.mode-icon {
+  font-size: 18px;
+}
+
+/* Country label styles */
+.country-label {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    font-size: 12px;
+    font-weight: 500;
+    color: #444;
+    text-shadow: 1px 1px 1px rgba(255,255,255,0.8);
+}
+
+/* Improve tooltip appearance and transitions */
+.country-label {
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: opacity 0.2s ease-in-out;
+    padding: 4px 8px;
+}
+
+body.dark-mode .country-label {
+    color: #fff;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.8);
+}
+
+body.dark-mode .country-label {
+    background: rgba(45, 45, 45, 0.9);
+    color: #fff;
+}
+
+.leaflet-tooltip-pane {
+    z-index: 1000;
+}
+
+.leaflet-tooltip-top:before,
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+    display: none;
+}
+
+/* Prevent text selection during interactions */
+.leaflet-container {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
