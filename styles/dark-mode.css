@@ -1,0 +1,94 @@
+body.dark-mode {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+body.dark-mode .top-ui,
+body.dark-mode .bottom-ui,
+body.dark-mode .info-panel {
+    background: #2c2c2c;
+    color: #fff;
+}
+
+body.dark-mode .search-btn,
+body.dark-mode .reset-zoom-btn,
+body.dark-mode .mode-btn {
+    background: #3d3d3d;
+    color: #fff;
+}
+
+body.dark-mode .leaflet-popup-content-wrapper,
+body.dark-mode .leaflet-popup-tip {
+    background: #2c2c2c;
+    color: #fff;
+}
+
+body.dark-mode .news-item {
+    background: #3d3d3d;
+}
+
+body.dark-mode .header h1 {
+    color: #fff;
+}
+
+body.dark-mode .header p {
+    color: #aaa;
+}
+
+body.dark-mode .search-container input {
+    background: #3d3d3d;
+    border-color: #444;
+    color: #fff;
+}
+
+body.dark-mode .info-label {
+    color: #aaa;
+}
+
+body.dark-mode .info-value {
+    color: #fff;
+}
+
+/* Map dark mode */
+body.dark-mode .leaflet-tile {
+    filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+}
+
+body.dark-mode .leaflet-container {
+    background: #303030;
+}
+
+body.dark-mode .country-label {
+    color: #fff;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.8);
+    background: rgba(45, 45, 45, 0.9);
+}
+
+/* News panel dark mode */
+body.dark-mode .news-panel {
+    color: #fff;
+}
+
+body.dark-mode .news-item h4 {
+    color: #fff;
+}
+
+body.dark-mode .news-item p {
+    color: #ddd;
+}
+
+body.dark-mode .handle-indicator {
+    background: #666;
+}
+
+body.dark-mode .news-item .news-footer {
+    border-top-color: #444;
+}
+
+body.dark-mode .news-item a {
+    color: #4cd137;
+}
+
+body.dark-mode .loading {
+    color: #aaa;
+}

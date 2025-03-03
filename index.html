@@ -9,7 +9,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/top-ui.css">
+  <link rel="stylesheet" href="styles/bottom-ui.css">
+  <link rel="stylesheet" href="styles/dark-mode.css">
 </head>
 <body>
   <div class="container">
@@ -20,8 +23,9 @@
       </div>
       
       <div class="controls-wrapper">
-        <div class="search-box">
-          <input type="text" placeholder="Search city, country, or flight number..." id="search">
+        <div class="search-container">
+          <input type="text" placeholder="Search airports..." id="search">
+          <button id="searchBtn" class="search-btn">🔍</button>
         </div>
 
         <button id="resetZoom" class="reset-zoom-btn" title="Reset map view">
@@ -49,10 +53,13 @@
     <div id="map-loading" class="map-loading">Loading...</div>
 
     <div class="bottom-ui">
+      <div class="bottom-ui-handle">
+        <div class="handle-indicator"></div>
+      </div>
       <div class="info-panel">
         <div class="info-grid">
           <div class="info-item">
-            <span class="info-label">Location</span>
+            <span class="info-label ">Location</span>
             <span class="info-value location">Select area</span>
           </div>
           <div class="info-item">
@@ -65,10 +72,19 @@
           </div>
         </div>
       </div>
+      <div class="news-panel">
+        <h3>Health News</h3>
+        <div class="news-container">
+          <!-- News items will be added here dynamically -->
+        </div>
+      </div>
     </div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="script.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/search.js"></script>
+  <script src="js/news.js"></script>
+  <script src="js/init.js"></script>
 </body>
 </html>
