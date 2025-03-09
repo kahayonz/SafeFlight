@@ -39,6 +39,7 @@
   position: relative;
   display: flex;
   gap: 5px;
+  z-index: 1002; /* Ensure it's above other elements */
 }
 
 .search-container input {
@@ -85,5 +86,69 @@
     background-color: #2ecc71;
     color: white;
     transform: scale(1.05);
+}
+
+/* Search suggestions dropdown */
+.search-suggestions {
+    position: absolute;
+    top: calc(100% + 5px); /* Position below search input */
+    left: 0;
+    right: 36px; /* Account for search button width */
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-top: 4px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    display: none;
+    z-index: 1001;
+    max-height: 240px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+.search-suggestions.active {
+    display: block !important; /* Force display when active */
+}
+
+.search-suggestions::-webkit-scrollbar {
+    width: 6px;
+}
+
+.search-suggestions::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.search-suggestions::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.suggestion-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s;
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item.active {
+    background-color: #f0f0f0;
+}
+
+.suggestion-item:hover {
+    background: #f5f5f5;
+}
+
+.suggestion-primary {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.suggestion-secondary {
+    font-size: 12px;
+    color: #7f8c8d;
 }
 

@@ -1,13 +1,14 @@
 // initialize variables
 let geojsonLayer;
 let currentRiskFilter = 'all';
-let airports = [];
 let isBottomUIExpanded = false;
 let map;
 
-// initialize event listeners
+// Initialize everything when the document is ready
 document.addEventListener('DOMContentLoaded', () => {
-    initMap();
+    if (!map) { // Add check to prevent double initialization
+        initMap();
+    }
     initializeEventListeners();
     loadAirportsData();
 });
@@ -16,22 +17,29 @@ function initializeEventListeners() {
     const searchInput = document.getElementById('search');
     const searchBtn = document.getElementById('searchBtn');
     
+    if (!searchInput || !searchBtn) {
+        console.error('Search elements not found!');
+        return;
+    }
+
+    searchInput.addEventListener('input', function(e) {
+        if (this.value.length >= 2) {
+            performSearch(this.value.trim());
+        }
+    });
+
     searchInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             performSearch(this.value.trim());
         }
     });
 
-    searchInput.addEventListener('input', function() {
-        const clearBtn = this.parentElement.querySelector('.clear-search');
-        if (this.value) {
-            clearBtn?.classList.add('visible');
-        } else {
-            clearBtn?.classList.remove('visible');
+    searchBtn.addEventListener('click', function() {
+        const query = searchInput.value.trim();
+        if (query) {
+            performSearch(query);
         }
     });
-
-    searchBtn.addEventListener('click', () => performSearch(searchInput.value.trim()));
     
     document.querySelectorAll('.risk-btn').forEach(button => {
         button.addEventListener('click', function() {
@@ -58,6 +66,12 @@ function initializeEventListeners() {
 }
 
 function cleanupMarkers() {
+    // Reset all country styles
+    if (geojsonLayer) {
+        geojsonLayer.eachLayer(layer => {
+            geojsonLayer.resetStyle(layer);
+        });
+    }
     if (window.currentMarker) {
         map.removeLayer(window.currentMarker);
         window.currentMarker = null;
@@ -105,6 +119,12 @@ function initializeDarkMode() {
         const isDarkMode = body.classList.contains('dark-mode');
         darkModeToggle.querySelector('.mode-icon').textContent = isDarkMode ? '🌙' : '☀️';
         localStorage.setItem('darkMode', isDarkMode ? 'enabled' : 'disabled');
+        
+        // Update country highlights when dark mode changes
+        if (currentRiskFilter !== 'all') {
+            filterCountries(currentRiskFilter);
+        }
+        
         if (map) {
             map.eachLayer(layer => {
                 if (layer instanceof L.TileLayer) layer.redraw();
@@ -121,28 +141,68 @@ function resetInfoPanel() {
 
 /*airport location for search*/
 function loadAirportsData() {
+    console.log('Starting airport data load...');
     fetch('https://raw.githubusercontent.com/algolia/datasets/master/airports/airports.json')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => {
-            airports = data
-                .filter(airport => 
-                    airport?.location?.lat && 
-                    airport?.location?.lng &&
+            console.log('Raw airport data:', data.length, 'entries');
+            const validAirports = data.filter(airport => {
+                const isValid = airport && 
                     airport.name &&
                     airport.city &&
                     airport.country &&
-                    airport.iata_code
-                )
-                .map(airport => ({
-                    name: airport.name,
-                    city: airport.city,
-                    country: airport.country,
-                    iata: airport.iata_code,
-                    coordinates: [airport.location.lat, airport.location.lng]
-                }));
+                    airport.iata_code &&
+                    airport._geoloc &&
+                    !isNaN(airport._geoloc.lat) &&
+                    !isNaN(airport._geoloc.lng);
+                
+                if (!isValid) {
+                    console.log('Invalid airport entry:', airport);
+                }
+                return isValid;
+            });
+            
+            console.log('Filtered valid airports:', validAirports.length);
+            
+            if (validAirports.length === 0) {
+                throw new Error('No valid airports found in the data');
+            }
+            
+            onAirportsLoaded(validAirports);
         })
         .catch(error => {
             console.error('Error loading airports:', error);
-            airports = [];
+            // Try backup data source
+            loadBackupAirportData();
         });
+}
+
+function loadBackupAirportData() {
+    console.log('Loading backup airport data...');
+    // Minimal set of major airports as fallback
+    const backupData = [
+        {
+            name: "London Heathrow Airport",
+            city: "London",
+            country: "United Kingdom",
+            iata_code: "LHR",
+            location: { lat: 51.4700, lng: -0.4543 }
+        },
+        {
+            name: "John F Kennedy International Airport",
+            city: "New York",
+            country: "United States",
+            iata_code: "JFK",
+            location: { lat: 40.6413, lng: -73.7781 }
+        },
+        // Add more major airports as needed
+    ];
+    
+    onAirportsLoaded(backupData);
+    console.log('Loaded backup airports:', backupData.length);
 }

@@ -121,12 +121,14 @@ function filterCountries(riskLevel) {
     if (!geojsonLayer) return;
     currentRiskFilter = riskLevel;
     
+    const highlightColor = document.body.classList.contains('dark-mode') ? '#fff' : '#000';
+    
     geojsonLayer.eachLayer((layer) => {
         const countryRisk = layer.feature.properties.riskLevel;
         const styles = riskLevel === 'all' 
             ? { opacity: 1, fillOpacity: 0.7 }
             : countryRisk === riskLevel 
-                ? { opacity: 1, fillOpacity: 0.9, weight: 2, color: '#666', dashArray: '' }
+                ? { opacity: 1, fillOpacity: 0.9, weight: 2, color: highlightColor, dashArray: '' }
                 : { opacity: 0.2, fillOpacity: 0.1, weight: 1, color: 'white', dashArray: '3' };
         
         layer.setStyle(styles);
