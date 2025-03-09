@@ -92,36 +92,3 @@ body.dark-mode .news-item a {
 body.dark-mode .loading {
     color: #aaa;
 }
-
-body.dark-mode .search-suggestions {
-    background: #2c2c2c;
-    border-color: #444;
-}
-
-body.dark-mode .search-suggestions::-webkit-scrollbar-track {
-    background: #2c2c2c;
-}
-
-body.dark-mode .search-suggestions::-webkit-scrollbar-thumb {
-    background: #666;
-}
-
-body.dark-mode .suggestion-item {
-    border-bottom-color: #444;
-}
-
-body.dark-mode .suggestion-item.active {
-    background-color: #444;
-}
-
-body.dark-mode .suggestion-item:hover {
-    background-color: #3d3d3d;
-}
-
-body.dark-mode .suggestion-primary {
-    color: #fff;
-}
-
-body.dark-mode .suggestion-secondary {
-    color: #aaa;
-}

@@ -1,15 +1,18 @@
 function initMap() {
-    map = L.map('map', {
-        minZoom: 3,
-        maxZoom: 8,
-        maxBounds: L.latLngBounds(L.latLng(-90, -180), L.latLng(90, 180)),
+    window.state.map = L.map('map', {
+        minZoom: 2,  // Prevent zooming out too far
+        maxZoom: 8,  // Prevent zooming in too far
+        maxBounds: L.latLngBounds(
+            L.latLng(-85, -180), // Southwest corner
+            L.latLng(85, 180)    // Northeast corner
+        ),
         maxBoundsViscosity: 1.0,
         wheelDebounceTime: 150,
         wheelPxPerZoomLevel: 120,
         preferCanvas: true,
         zoomSnap: 0.5,
         zoomDelta: 0.5,
-        bounceAtZoomLimits: false,
+        bounceAtZoomLimits: true,
         worldCopyJump: true,
         fadeAnimation: true,
         markerZoomAnimation: true,
@@ -26,7 +29,7 @@ function initMap() {
         keepBuffer: 2,
         updateWhenIdle: true,
         updateWhenZooming: false
-    }).addTo(map);
+    }).addTo(window.state.map);
 
     loadGeoJSON();
 }
@@ -54,12 +57,12 @@ async function loadGeoJSON(retryCount = 3) {
                 feature.properties.cases = Math.floor(Math.random() * 1000);
             });
 
-            // geojson highlight layers
-            geojsonLayer = L.geoJSON(data, {
+            // Store in state instead of global
+            window.state.geojsonLayer = L.geoJSON(data, {
                 style: (feature) => getCountryStyle(feature.properties.riskLevel),
                 onEachFeature: onEachFeature,
                 bubblingMouseEvents: false
-            }).addTo(map);
+            }).addTo(window.state.map);
 
             filterCountries('all');
             loadingEl.classList.remove('active');
@@ -82,10 +85,10 @@ async function loadGeoJSON(retryCount = 3) {
 // Map styles and utilities
 function getCountryStyle(riskLevel) {
     return {
-        weight: 1,
-        opacity: 1,
-        color: 'white',
-        dashArray: '3',
+        weight: 1.5,        // Slightly thicker borders
+        opacity: 0.8,       // More opaque borders
+        color: '#fff',      // White borders
+        dashArray: '',      // No dashes
         fillOpacity: 0.7,
         fillColor: {
             high: '#ff4444',
@@ -113,17 +116,82 @@ function onEachFeature(feature, layer) {
 }
 
 function onFeatureClick(e) {
-    map.fitBounds(e.target.getBounds());
-    updateInfoPanel(e.target.feature.properties);
+    // Reset all country styles first
+    window.state.geojsonLayer.eachLayer(layer => {
+        window.state.geojsonLayer.resetStyle(layer);
+    });
+
+    // Then highlight the selected country
+    const layer = e.target;
+    const bounds = layer.getBounds();
+    const country = layer.feature.properties.ADMIN || layer.feature.properties.name;
+    
+    layer.setStyle({
+        weight: 2,
+        color: document.body.classList.contains('dark-mode') ? '#fff' : '#000',
+        fillOpacity: 0.9
+    });
+
+    // Rest of the zoom handling
+    if (country === "United States of America" || country === "United States") {
+        // Custom bounds for USA to exclude Alaska and Hawaii
+        window.state.map.fitBounds([
+            [24.396308, -125.000000], // Southwest point
+            [49.384358, -66.934570]   // Northeast point
+        ], {
+            maxZoom: 4,
+            padding: [50, 50],
+            animate: true,
+            duration: 1
+        });
+    } else {
+        const boundsArea = Math.abs(bounds.getNorth() - bounds.getSouth()) * 
+                          Math.abs(bounds.getEast() - bounds.getWest());
+        
+        // Check if country crosses the international date line
+        const crossesDateLine = bounds.getWest() > bounds.getEast();
+        
+        if (crossesDateLine) {
+            // Adjust bounds for countries that cross the international date line
+            const adjustedBounds = [
+                [bounds.getSouth(), bounds.getEast()],
+                [bounds.getNorth(), bounds.getWest()]
+            ];
+            window.state.map.fitBounds(adjustedBounds, {
+                maxZoom: 4,
+                padding: [50, 50],
+                animate: true,
+                duration: 1
+            });
+        } else if (boundsArea > 100) {
+            // Large countries
+            window.state.map.fitBounds(bounds, {
+                maxZoom: 3,
+                padding: [50, 50],
+                animate: true,
+                duration: 1
+            });
+        } else {
+            // Normal countries
+            window.state.map.fitBounds(bounds, {
+                padding: [50, 50],
+                maxZoom: 6,
+                animate: true,
+                duration: 1
+            });
+        }
+    }
+
+    updateInfoPanel(layer.feature.properties);
 }
 
 function filterCountries(riskLevel) {
-    if (!geojsonLayer) return;
-    currentRiskFilter = riskLevel;
+    if (!window.state.geojsonLayer) return;
+    window.state.currentRiskFilter = riskLevel;
     
     const highlightColor = document.body.classList.contains('dark-mode') ? '#fff' : '#000';
     
-    geojsonLayer.eachLayer((layer) => {
+    window.state.geojsonLayer.eachLayer((layer) => {
         const countryRisk = layer.feature.properties.riskLevel;
         const styles = riskLevel === 'all' 
             ? { opacity: 1, fillOpacity: 0.7 }

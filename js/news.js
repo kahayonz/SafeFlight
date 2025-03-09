@@ -17,9 +17,14 @@ const EXCLUDE_KEYWORDS = [
 ];
 
 async function updateNewsPanel(countryName) {
-    if (!isBottomUIExpanded) return; // Don't fetch if not expanded
+    if (!countryName || countryName === 'Select area') return;
+    
+    // Only proceed if bottom UI is already expanded
+    if (!window.state.isBottomUIExpanded) return;
     
     const newsContainer = document.querySelector('.news-container');
+    if (!newsContainer) return;
+
     newsContainer.innerHTML = '<div class="loading">Loading health alerts...</div>';
     
     try {
@@ -153,6 +158,19 @@ function cacheNewsResults(countryName, html) {
             timestamp: Date.now(),
             html: html
         }));
+        
+        // Log cached countries
+        const cachedCountries = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith('news_')) {
+                const country = key.replace('news_', '');
+                const data = JSON.parse(localStorage.getItem(key));
+                const age = Math.round((Date.now() - data.timestamp) / 60000); // age in minutes
+                cachedCountries.push(`${country} (${age}min old)`);
+            }
+        }
+        console.log('Currently cached news for:', cachedCountries);
     } catch (e) {
         console.warn('Failed to cache news results:', e);
     }

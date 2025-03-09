@@ -1,107 +1,118 @@
-// initialize variables
-let geojsonLayer;
-let currentRiskFilter = 'all';
-let isBottomUIExpanded = false;
-let map;
+// Make state globally accessible
+window.state = {
+    geojsonLayer: null,
+    currentRiskFilter: 'all',
+    isBottomUIExpanded: false,
+    map: null
+};
 
 // Initialize everything when the document is ready
 document.addEventListener('DOMContentLoaded', () => {
-    if (!map) { // Add check to prevent double initialization
+    if (!state.map) { // Add check to prevent double initialization
         initMap();
     }
     initializeEventListeners();
     loadAirportsData();
 });
 
+// Simplified event listener initialization
 function initializeEventListeners() {
-    const searchInput = document.getElementById('search');
-    const searchBtn = document.getElementById('searchBtn');
-    
-    if (!searchInput || !searchBtn) {
+    const elements = {
+        search: document.getElementById('search'),
+        searchBtn: document.getElementById('searchBtn'),
+        resetZoom: document.getElementById('resetZoom'),
+        riskButtons: document.querySelectorAll('.risk-btn')
+    };
+
+    if (!elements.search || !elements.searchBtn) {
         console.error('Search elements not found!');
         return;
     }
 
-    searchInput.addEventListener('input', function(e) {
-        if (this.value.length >= 2) {
-            performSearch(this.value.trim());
+    // Event handlers
+    const handlers = {
+        search: (e) => e.key === 'Enter' && performSearch(e.target.value.trim()),
+        searchBtn: () => elements.search.value && performSearch(elements.search.value.trim()),
+        risk: (btn) => {
+            elements.riskButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            filterCountries(btn.getAttribute('data-risk'));
+        },
+        reset: () => {
+            cleanupMarkers();
+            state.map.setView([20, 0], 3);
+            resetInfoPanel();
         }
-    });
+    };
 
-    searchInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            performSearch(this.value.trim());
-        }
-    });
-
-    searchBtn.addEventListener('click', function() {
-        const query = searchInput.value.trim();
-        if (query) {
-            performSearch(query);
-        }
-    });
-    
-    document.querySelectorAll('.risk-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            document.querySelectorAll('.risk-btn').forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-            filterCountries(this.getAttribute('data-risk'));
-        });
-    });
-
-    document.getElementById('resetZoom').addEventListener('click', () => {
-        cleanupMarkers();
-        map.setView([20, 0], 3);
-        if (geojsonLayer) {
-            geojsonLayer.eachLayer(layer => geojsonLayer.resetStyle(layer));
-        }
-        if (window.currentMarker) {
-            map.removeLayer(window.currentMarker);
-        }
-        resetInfoPanel();
-    });
+    // Add listeners
+    elements.search.addEventListener('keypress', handlers.search);
+    elements.searchBtn.addEventListener('click', handlers.searchBtn);
+    elements.riskButtons.forEach(btn => btn.addEventListener('click', () => handlers.risk(btn)));
+    elements.resetZoom.addEventListener('click', handlers.reset);
 
     initializeBottomUIHandlers();
     initializeDarkMode();
 }
 
 function cleanupMarkers() {
-    // Reset all country styles
-    if (geojsonLayer) {
-        geojsonLayer.eachLayer(layer => {
-            geojsonLayer.resetStyle(layer);
+    if (state.geojsonLayer) {
+        state.geojsonLayer.eachLayer(layer => {
+            state.geojsonLayer.resetStyle(layer);
         });
     }
     if (window.currentMarker) {
-        map.removeLayer(window.currentMarker);
+        state.map.removeLayer(window.currentMarker);
         window.currentMarker = null;
     }
 }
 
 function initializeBottomUIHandlers() {
+    const bottomUI = document.querySelector('.bottom-ui');
     const bottomUIHandle = document.querySelector('.bottom-ui-handle');
     let startY, startHeight;
 
+    // Set initial state based on expanded class
+    window.state.isBottomUIExpanded = bottomUI.classList.contains('expanded');
+
     bottomUIHandle.addEventListener('click', () => {
-        const bottomUI = document.querySelector('.bottom-ui');
-        isBottomUIExpanded = !isBottomUIExpanded;
-        bottomUI.classList.toggle('expanded', isBottomUIExpanded);
+        window.state.isBottomUIExpanded = !window.state.isBottomUIExpanded;
+        bottomUI.classList.toggle('expanded', window.state.isBottomUIExpanded);
+        
+        // If expanding and we have a country selected, load its news
+        if (window.state.isBottomUIExpanded) {
+            const currentLocation = document.querySelector('.info-value.location').textContent;
+            if (currentLocation && currentLocation !== 'Select area') {
+                updateNewsPanel(currentLocation);
+            }
+        }
+    });
+
+    // Handle touch events for height adjustment
+    bottomUIHandle.addEventListener('touchmove', (e) => {
+        const touch = e.touches[0];
+        const diff = startY - touch.clientY;
+        const newHeight = Math.min(Math.max(startHeight + diff, 100), window.innerHeight * 0.9);
+        bottomUI.style.height = `${newHeight}px`;
+        
+        const isExpanded = newHeight > window.innerHeight * 0.3;
+        bottomUI.classList.toggle('expanded', isExpanded);
+        
+        // Update state and load news if newly expanded
+        if (isExpanded !== window.state.isBottomUIExpanded) {
+            window.state.isBottomUIExpanded = isExpanded;
+            if (isExpanded) {
+                const currentLocation = document.querySelector('.info-value.location').textContent;
+                if (currentLocation && currentLocation !== 'Select area') {
+                    updateNewsPanel(currentLocation);
+                }
+            }
+        }
     });
 
     bottomUIHandle.addEventListener('touchstart', (e) => {
         startY = e.touches[0].clientY;
         startHeight = document.querySelector('.bottom-ui').offsetHeight;
-    });
-
-    bottomUIHandle.addEventListener('touchmove', (e) => {
-        const bottomUI = document.querySelector('.bottom-ui');
-        const touch = e.touches[0];
-        const diff = startY - touch.clientY;
-        
-        const newHeight = Math.min(Math.max(startHeight + diff, 100), window.innerHeight * 0.9);
-        bottomUI.style.height = `${newHeight}px`;
-        
-        bottomUI.classList.toggle('expanded', newHeight > window.innerHeight * 0.3);
     });
 }
 
@@ -121,12 +132,12 @@ function initializeDarkMode() {
         localStorage.setItem('darkMode', isDarkMode ? 'enabled' : 'disabled');
         
         // Update country highlights when dark mode changes
-        if (currentRiskFilter !== 'all') {
-            filterCountries(currentRiskFilter);
+        if (state.currentRiskFilter !== 'all') {
+            filterCountries(state.currentRiskFilter);
         }
         
-        if (map) {
-            map.eachLayer(layer => {
+        if (state.map) {
+            state.map.eachLayer(layer => {
                 if (layer instanceof L.TileLayer) layer.redraw();
             });
         }
@@ -134,9 +145,23 @@ function initializeDarkMode() {
 }
 
 function resetInfoPanel() {
-    document.querySelector('.info-value.location').textContent = 'Select area';
-    document.querySelector('.info-value.disease').textContent = '-';
-    document.querySelector('.info-value.cases').textContent = '-';
+    const elements = {
+        location: document.querySelector('.info-value.location'),
+        disease: document.querySelector('.info-value.disease'),
+        cases: document.querySelector('.info-value.cases')
+    };
+
+    elements.location.textContent = 'Select area';
+    elements.disease.textContent = '-';
+    elements.cases.textContent = '-';
+    
+    // Also reset news panel if expanded
+    if (state.isBottomUIExpanded) {
+        const newsContainer = document.querySelector('.news-container');
+        if (newsContainer) {
+            newsContainer.innerHTML = '<div class="news-item"><p>Select a country to view health alerts.</p></div>';
+        }
+    }
 }
 
 /*airport location for search*/
