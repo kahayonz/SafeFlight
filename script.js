@@ -63,8 +63,6 @@ function getCountryStyle(riskLevel) {
 
 // Modify the highlight function to only work on click
 function highlightFeature(e) {
-    if (currentRiskFilter !== 'all') return;
-    
     const layer = e.target;
     layer.setStyle({
         weight: 2,
@@ -78,6 +76,13 @@ function highlightFeature(e) {
 function onFeatureClick(e) {
     map.fitBounds(e.target.getBounds());
     updateInfoPanel(e.target.feature.properties);
+    // Highlight only the selected country
+    if (geojsonLayer) {
+        geojsonLayer.eachLayer(l => {
+            geojsonLayer.resetStyle(l);
+        });
+    }
+    highlightFeature(e);
 }
 
 // country layer listeners
@@ -151,64 +156,8 @@ function filterCountries(riskLevel) {
     });
 }
 
-// Add these functions after the existing declarations
-const AIRLINE_CODES = {
-    'AA': 'American Airlines',
-    'UA': 'United Airlines',
-    'DL': 'Delta Airlines',
-    'LH': 'Lufthansa',
-    'BA': 'British Airways',
-    'AF': 'Air France',
-    'KL': 'KLM',
-    // Add more airlines as needed
-};
-
-// Simple flight route database (replace with actual API in production)
-const FLIGHT_ROUTES = {
-    'AA123': { destination: 'United States', airport: 'JFK' },
-    'BA456': { destination: 'United Kingdom', airport: 'LHR' },
-    'LH789': { destination: 'Germany', airport: 'FRA' },
-    // Add more routes as needed
-};
-
-// Add this after the FLIGHT_ROUTES constant
-const MAJOR_CITIES = {
-    'London': 'United Kingdom',
-    'Paris': 'France',
-    'New York': 'United States',
-    'Tokyo': 'Japan',
-    'Beijing': 'China',
-    'Sydney': 'Australia',
-    'Dubai': 'United Arab Emirates',
-    'Moscow': 'Russia',
-    'Berlin': 'Germany',
-    'Rome': 'Italy',
-    // Add more cities as needed
-};
-
-function parseFlightNumber(input) {
-    // Match pattern: 2-3 letters followed by 1-4 numbers
-    const match = input.toUpperCase().match(/^([A-Z]{2,3})(\d{1,4})$/);
-    if (!match) return null;
-
-    const [_, airlineCode, flightNumber] = match;
-    const airline = AIRLINE_CODES[airlineCode];
-    const route = FLIGHT_ROUTES[input.toUpperCase()];
-
-    if (!airline || !route) return null;
-
-    return {
-        airline,
-        flightNumber,
-        destination: route.destination,
-        airport: route.airport
-    };
-}
-
-// Add this function after parseFlightNumber
-let locationData = null;
-
 // Fetch location data
+let locationData = null;
 fetch('data/locations.json')
     .then(response => response.json())
     .then(data => {
@@ -216,32 +165,9 @@ fetch('data/locations.json')
     })
     .catch(error => console.error('Error loading location data:', error));
 
-// Update the searchLocation function
+// Update the searchLocation function to only search for countries
 function searchLocation(input) {
-    // First check if it's a flight number
-    const flightInfo = parseFlightNumber(input);
-    if (flightInfo) {
-        return {
-            type: 'flight',
-            data: flightInfo
-        };
-    }
-
     if (!locationData) return { type: 'country', data: input };
-
-    // Check cities
-    const cityMatch = Object.entries(locationData.cities).find(([city]) => 
-        city.toLowerCase().includes(input.toLowerCase())
-    );
-    if (cityMatch) {
-        return {
-            type: 'city',
-            data: {
-                city: cityMatch[0],
-                ...cityMatch[1]
-            }
-        };
-    }
 
     // Check countries
     const countryMatch = Object.entries(locationData.countries).find(([country]) => 
@@ -265,7 +191,7 @@ function searchLocation(input) {
 
 function highlightCountryByName(countryName) {
     geojsonLayer.eachLayer((layer) => {
-        if (layer.feature.properties.ADMIN === countryName) {
+        if (layer.feature.properties.ADMIN.toLowerCase() === countryName.toLowerCase()) {
             map.fitBounds(layer.getBounds());
             highlightFeature({ target: layer });
             return;
@@ -314,35 +240,9 @@ document.getElementById('search').addEventListener('input', function(e) {
 
         const searchResult = searchLocation(input);
         
-        switch(searchResult.type) {
-            case 'flight':
-                highlightCountryByName(searchResult.data.destination);
-                document.querySelector('.info-value.location').textContent = 
-                    `${searchResult.data.destination} (${searchResult.data.airport})`;
-                document.querySelector('.info-value.disease').textContent = 
-                    `Flight: ${input.toUpperCase()}`;
-                document.querySelector('.info-value.cases').textContent = 
-                    searchResult.data.airline;
-                break;
-
-            case 'city':
-                highlightCountryByName(searchResult.data.country);
-                document.querySelector('.info-value.location').textContent = 
-                    `${searchResult.data.city}, ${searchResult.data.country}`;
-                // Center map on city coordinates
-                if (searchResult.data.coordinates) {
-                    map.setView(searchResult.data.coordinates, 8);
-                }
-                updateInfoPanelFromCountry(searchResult.data.country);
-                break;
-
-            case 'country':
-                if (searchResult.data.coordinates) {
-                    map.setView(searchResult.data.coordinates, 5);
-                }
-                highlightCountryByName(searchResult.data.name || searchResult.data);
-                updateInfoPanelFromCountry(searchResult.data.name || searchResult.data);
-                break;
+        if (searchResult.type === 'country') {
+            highlightCountryByName(searchResult.data.name || searchResult.data);
+            updateInfoPanelFromCountry(searchResult.data.name || searchResult.data);
         }
     }, 300);
 });
@@ -351,7 +251,7 @@ document.getElementById('search').addEventListener('input', function(e) {
 function updateInfoPanelFromCountry(countryName) {
     if (geojsonLayer) {
         geojsonLayer.eachLayer((layer) => {
-            if (layer.feature.properties.ADMIN === countryName) {
+            if (layer.feature.properties.ADMIN.toLowerCase() === countryName.toLowerCase()) {
                 updateInfoPanel(layer.feature.properties);
             }
         });
