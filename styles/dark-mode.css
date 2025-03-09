@@ -92,3 +92,26 @@ body.dark-mode .news-item a {
 body.dark-mode .loading {
     color: #aaa;
 }
+
+.dark-mode .login-container {
+    background-color: #2c2c2c;
+    color: #fff;
+}
+
+.dark-mode .login-container h2 {
+    color: #fff;
+}
+
+.dark-mode .form-group label {
+    color: #fff;
+}
+
+.dark-mode .form-group input {
+    background-color: #3d3d3d;
+    border-color: #4d4d4d;
+    color: #fff;
+}
+
+.dark-mode .auth-switch {
+    color: #fff;
+}

@@ -10,6 +10,7 @@ window.state = {
 document.addEventListener('DOMContentLoaded', () => {
     if (!state.map) { // Add check to prevent double initialization
         initMap();
+        initializeAuth();
     }
     initializeEventListeners();
     loadAirportsData();
