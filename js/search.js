@@ -1,8 +1,13 @@
-// Global variables
+/*
+for mao,
+Features to add:
+autocomplete suggestion dropdown
+add countries with no iata code/no airports
+*/
 window.airports = []; 
 let airportsLoaded = false;
 
-// Simplified search logic
+// fixed logic for search
 function performSearch(query) {
     if (!airportsLoaded || !window.airports?.length) {
         console.warn('Airports data not yet loaded');
@@ -22,10 +27,10 @@ function performSearch(query) {
 function handleAirportSelection(airport) {
     if (!airport || !airport.country) return;
 
-    // Update search input
+    // update search input
     document.getElementById('search').value = `${airport.city} (${airport.iata})`;
 
-    // Find and highlight the country
+    // find and highlight the country
     if (state.geojsonLayer) {
         state.geojsonLayer.eachLayer(layer => {
             if (layer.feature.properties.ADMIN === airport.country) {
@@ -42,7 +47,7 @@ function handleAirportSelection(airport) {
         });
     }
 
-    // Update location in info panel
+    // update location in info panel
     document.querySelector('.info-value.location').textContent = 
         `${airport.city}, ${airport.country}`;
 }
@@ -78,5 +83,5 @@ function onAirportsLoaded(data) {
     }
 }
 
-// Make these available globally
+// make loaded airports available to map/init.js
 window.onAirportsLoaded = onAirportsLoaded;

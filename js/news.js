@@ -1,7 +1,7 @@
 const NEWS_API_KEY = '28cb8c3a6b25c19a248f23ee6e2ee642';
 const NEWS_ENDPOINT = 'https://gnews.io/api/v4/search';
 
-// Core keywords for health alerts
+// keywords for health alerts
 const HEALTH_KEYWORDS = [
     'outbreak',
     'epidemic',
@@ -9,7 +9,7 @@ const HEALTH_KEYWORDS = [
     'disease'
 ];
 
-// Basic exclusion keywords
+// exclusion keywords
 const EXCLUDE_KEYWORDS = [
     'cancer',
     'clinical',
@@ -19,7 +19,7 @@ const EXCLUDE_KEYWORDS = [
 async function updateNewsPanel(countryName) {
     if (!countryName || countryName === 'Select area') return;
     
-    // Only proceed if bottom UI is already expanded
+    // only show news when bottom UI is clicked
     if (!window.state.isBottomUIExpanded) return;
     
     const newsContainer = document.querySelector('.news-container');
@@ -28,13 +28,13 @@ async function updateNewsPanel(countryName) {
     newsContainer.innerHTML = '<div class="loading">Loading health alerts...</div>';
     
     try {
-        // Check if we've hit the rate limit recently
+        // rate limit check
         const lastRateLimitHit = localStorage.getItem('newsApiRateLimit');
         if (lastRateLimitHit && (Date.now() - parseInt(lastRateLimitHit)) < 300000) { // 5 minutes
             throw new Error('RATE_LIMIT_WAITING');
         }
 
-        // Simpler query construction
+        // query to send to GNEWS
         const healthQuery = `${countryName} (health OR disease)`;
         
         const params = new URLSearchParams({
@@ -58,16 +58,16 @@ async function updateNewsPanel(countryName) {
         
         const data = await response.json();
         
-        // Filter articles for relevance
+        // filter for results
         const relevantArticles = data.articles?.filter(article => {
             const text = `${article.title} ${article.description}`.toLowerCase();
             
-            // Check if article contains any exclude keywords
+            // if article contains any exclude keywords
             const hasExcludedTopic = EXCLUDE_KEYWORDS.some(keyword => 
                 text.includes(keyword.toLowerCase())
             );
             
-            // Check if article has relevant health keywords
+            // if article has relevant health keywords
             const hasHealthKeyword = HEALTH_KEYWORDS.some(keyword => 
                 text.includes(keyword.toLowerCase())
             );
@@ -134,7 +134,7 @@ async function updateNewsPanel(countryName) {
                 errorMessage = 'Unable to load health alerts. Using cached data if available.';
         }
 
-        // Try to show cached news if available
+        // get local cache if news wont load
         const cachedNews = localStorage.getItem(`news_${countryName}`);
         if (cachedNews) {
             const cache = JSON.parse(cachedNews);
@@ -159,7 +159,7 @@ function cacheNewsResults(countryName, html) {
             html: html
         }));
         
-        // Log cached countries
+        // log cached countries
         const cachedCountries = [];
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);

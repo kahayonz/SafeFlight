@@ -1,12 +1,11 @@
-// auth.js
 function initializeAuth() {
-    // Add login button to body
+    // add login button to body
     const authButton = document.createElement('button');
     authButton.className = 'auth-button';
     authButton.textContent = 'Login';
     document.body.appendChild(authButton);
 
-    // Create login overlay
+    // create login overlay
     const overlay = document.createElement('div');
     overlay.className = 'login-overlay';
     overlay.innerHTML = `
@@ -31,7 +30,7 @@ function initializeAuth() {
     `;
     document.body.appendChild(overlay);
 
-    // Event Listeners
+    // login Listeners
     authButton.addEventListener('click', () => {
         overlay.style.display = 'flex';
     });
