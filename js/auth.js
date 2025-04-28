@@ -1,36 +1,53 @@
+const apiUrl = 'http://localhost:5001/auth'; // Make sure port matches your server.js port
+
 function initializeAuth() {
-    // add login button to body
+    // Add login button to body
     const authButton = document.createElement('button');
     authButton.className = 'auth-button';
     authButton.textContent = 'Login';
     document.body.appendChild(authButton);
 
-    // create login overlay
+    // Create login overlay
     const overlay = document.createElement('div');
     overlay.className = 'login-overlay';
     overlay.innerHTML = `
-        <div class="login-container">
+        <div class="login-container" id="authContainer">
             <h2>Login</h2>
             <div class="auth-error"></div>
             <form id="authForm">
                 <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" required>
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" required>
                 </div>
                 <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" required>
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" required>
                 </div>
-                <button type="submit" class="auth-submit">Login</button>
+                <button type="button" class="auth-submit" onclick="login()">Login</button>
                 <div class="auth-switch">
-                    Don't have an account? <span id="switchMode">Sign up</span>
+                    Don't have an account? <span id="switchMode" onclick="toggleAuthMode()">Sign up</span>
+                </div>
+            </form>
+            <form id="registerForm" style="display: none;">
+                <h2>Register</h2>
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Password</label>
+                    <input type="password" id="registerPassword" required>
+                </div>
+                <button type="button" class="auth-submit" onclick="register()">Register</button>
+                <div class="auth-switch">
+                    Already have an account? <span id="switchMode" onclick="toggleAuthMode()">Login</span>
                 </div>
             </form>
         </div>
     `;
     document.body.appendChild(overlay);
 
-    // login Listeners
+    // Login button listener
     authButton.addEventListener('click', () => {
         overlay.style.display = 'flex';
     });
@@ -41,78 +58,80 @@ function initializeAuth() {
         }
     });
 
-    const authForm = document.getElementById('authForm');
-    const switchMode = document.getElementById('switchMode');
-    const errorDiv = document.querySelector('.auth-error');
-    let isLoginMode = true;
-
-    switchMode.addEventListener('click', () => {
-        isLoginMode = !isLoginMode;
-        authForm.querySelector('h2').textContent = isLoginMode ? 'Login' : 'Sign Up';
-        authForm.querySelector('.auth-submit').textContent = isLoginMode ? 'Login' : 'Sign Up';
-        switchMode.textContent = isLoginMode ? 'Sign up' : 'Login';
-        authForm.querySelector('.auth-switch').innerHTML = 
-            isLoginMode ? 'Don\'t have an account? <span id="switchMode">Sign up</span>' 
-                       : 'Already have an account? <span id="switchMode">Login</span>';
-        errorDiv.style.display = 'none';
-    });
-
-    authForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-
-        if (isLoginMode) {
-            handleLogin(username, password);
-        } else {
-            handleSignup(username, password);
-        }
-    });
-}
-
-function handleLogin(username, password) {
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
-    const errorDiv = document.querySelector('.auth-error');
-
-    if (users[username] && users[username] === password) {
-        localStorage.setItem('currentUser', username);
-        document.querySelector('.login-overlay').style.display = 'none';
-        updateAuthButton();
-        errorDiv.style.display = 'none';
-    } else {
-        errorDiv.textContent = 'Invalid username or password';
-        errorDiv.style.display = 'block';
-    }
-}
-
-function handleSignup(username, password) {
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
-    const errorDiv = document.querySelector('.auth-error');
-
-    if (users[username]) {
-        errorDiv.textContent = 'Username already exists';
-        errorDiv.style.display = 'block';
-        return;
-    }
-
-    users[username] = password;
-    localStorage.setItem('users', JSON.stringify(users));
-    localStorage.setItem('currentUser', username);
-    document.querySelector('.login-overlay').style.display = 'none';
     updateAuthButton();
-    errorDiv.style.display = 'none';
+}
+
+async function register() {
+    const email = document.getElementById('registerEmail').value;
+    const password = document.getElementById('registerPassword').value;
+
+    try {
+        const response = await fetch(`${apiUrl}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+        alert(data.message || data.error);
+    } catch (error) {
+        console.error('Error during registration:', error);
+        alert('An error occurred during registration.');
+    }
+}
+
+async function login() {
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+
+    try {
+        const response = await fetch(`${apiUrl}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+        if (data.token) {
+            localStorage.setItem('token', data.token);
+            alert('Login successful!');
+            document.getElementById('authContainer').style.display = 'none';
+            document.querySelector('.container').style.display = 'block';
+        } else {
+            alert(data.error);
+        }
+    } catch (error) {
+        console.error('Error during login:', error);
+        alert('An error occurred during login.');
+    }
+}
+
+function logout() {
+    localStorage.removeItem('token');
+    alert('Logged out');
+    document.getElementById('authContainer').style.display = 'block';
+    document.querySelector('.container').style.display = 'none';
+}
+
+function toggleAuthMode() {
+    const authForm = document.getElementById('authForm');
+    const registerForm = document.getElementById('registerForm');
+    if (authForm.style.display === 'none') {
+        authForm.style.display = 'block';
+        registerForm.style.display = 'none';
+    } else {
+        authForm.style.display = 'none';
+        registerForm.style.display = 'block';
+    }
 }
 
 function updateAuthButton() {
     const authButton = document.querySelector('.auth-button');
-    const currentUser = localStorage.getItem('currentUser');
+    const token = localStorage.getItem('token');
 
-    if (currentUser) {
+    if (token) {
         authButton.textContent = 'Logout';
-        authButton.onclick = () => {
-            localStorage.removeItem('currentUser');
-            updateAuthButton();
-        };
+        authButton.onclick = logout;
     } else {
         authButton.textContent = 'Login';
         authButton.onclick = () => {
@@ -120,3 +139,15 @@ function updateAuthButton() {
         };
     }
 }
+
+// Check authentication state on page load
+document.addEventListener('DOMContentLoaded', () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        document.getElementById('authContainer').style.display = 'block';
+        document.querySelector('.container').style.display = 'none';
+    } else {
+        document.getElementById('authContainer').style.display = 'none';
+        document.querySelector('.container').style.display = 'block';
+    }
+});
