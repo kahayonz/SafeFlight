@@ -85,12 +85,26 @@
     </div>
   </div>
 
+  <!-- Login/Signup Feature (MODIFY PARA MAGING AESTHETIC) -->
+  <div id="authContainer">
+    <h2>Login</h2>
+    <input type="email" id="loginEmail" placeholder="Email">
+    <input type="password" id="loginPassword" placeholder="Password">
+    <button onclick="login()">Login</button>
+
+    <h2>Register</h2>
+    <input type="email" id="registerEmail" placeholder="Email">
+    <input type="password" id="registerPassword" placeholder="Password">
+    <button onclick="register()">Register</button>
+
+    <button onclick="logout()">Logout</button>
+  </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="js/map.js"></script>
   <script src="js/search.js"></script>
   <script src="js/news.js"></script>
   <script src="js/init.js"></script>
   <script src="js/auth.js"></script>
-
 </body>
 </html>
