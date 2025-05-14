@@ -86,20 +86,8 @@
   </div>
 
   <!-- Eto yung kumukuha ng information for LOGIN -->
-  <div id="authContainer">
-    <h2>Login</h2>
-    <input type="email" id="loginEmail" placeholder="Email">
-    <input type="password" id="loginPassword" placeholder="Password">
-    <button onclick="login()">Login</button>
-
-    <h2>Register</h2>
-    <input type="email" id="registerEmail" placeholder="Email">
-    <input type="password" id="registerPassword" placeholder="Password">
-    <button onclick="register()">Register</button>
-    <button onclick="login()">Login</button>
-
-    <button onclick="logout()">Logout</button>
-  </div>
+  <!-- The old login/register form is now hidden and handled by js/auth.js -->
+  <div id="authContainer" style="display:none"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="js/map.js"></script>

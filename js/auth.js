@@ -29,7 +29,7 @@ function initializeAuth() {
                 </div>
             </form>
             <form id="registerForm" style="display: none;">
-                <h2>Register</h2>
+                <!-- Only one Register title, handled by #authTitle -->
                 <div class="form-group">
                     <label for="registerEmail">Email</label>
                     <input type="email" id="registerEmail" required>
@@ -67,43 +67,40 @@ function initializeAuth() {
         document.getElementById('authForm').style.display = 'none';
         document.getElementById('registerForm').style.display = 'block';
         document.getElementById('authTitle').textContent = 'Register';
+        // Hide error message when switching to register
+        const errorDiv = document.querySelector('.auth-error');
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
     });
 
     document.getElementById('switchModeBack').addEventListener('click', () => {
         document.getElementById('authForm').style.display = 'block';
         document.getElementById('registerForm').style.display = 'none';
         document.getElementById('authTitle').textContent = 'Login';
-    });
-
-    // Debug input changes
-    document.addEventListener('input', (e) => {
-        if (e.target.id === 'loginEmail' || e.target.id === 'loginPassword') {
-            console.log(`${e.target.id} value:`, e.target.value);
-        }
+        // Hide error message when switching to login
+        const errorDiv = document.querySelector('.auth-error');
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
     });
 
     updateAuthButton();
 }
 
 async function register(event) {
-    event.preventDefault(); // Prevent form submission
+    event.preventDefault();
 
     const emailInput = document.getElementById('registerEmail');
     const passwordInput = document.getElementById('registerPassword');
+    const errorDiv = document.querySelector('.auth-error');
 
-    if (!emailInput || !passwordInput) {
-        console.error('Register input fields not found.');
-        return;
-    }
+    if (!emailInput || !passwordInput) return;
 
     const email = emailInput.value.trim();
     const password = passwordInput.value.trim();
 
-    console.log('Register Email:', email); // Debugging log
-    console.log('Register Password:', password); // Debugging log
-
     if (!email || !password) {
-        alert('Please fill in all fields.');
+        errorDiv.textContent = 'Please fill in all fields.';
+        errorDiv.style.display = 'block';
         return;
     }
 
@@ -115,35 +112,39 @@ async function register(event) {
         });
 
         const data = await response.json();
-        alert(data.message || data.error);
+        if (response.ok) {
+            errorDiv.style.display = 'none';
+            // Switch to login tab and show a message
+            document.getElementById('authForm').style.display = 'block';
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('authTitle').textContent = 'Login';
+            errorDiv.textContent = 'Registration successful! Please log in.';
+            errorDiv.style.display = 'block';
+        } else {
+            errorDiv.textContent = data.error || data.message || 'Registration failed.';
+            errorDiv.style.display = 'block';
+        }
     } catch (error) {
-        console.error('Error during registration:', error);
-        alert('An error occurred during registration.');
+        errorDiv.textContent = error.message || 'An error occurred during registration.';
+        errorDiv.style.display = 'block';
     }
 }
 
 async function login(event) {
-    event.preventDefault(); // Prevent form submission
+    event.preventDefault();
 
     const emailInput = document.getElementById('loginEmail');
     const passwordInput = document.getElementById('loginPassword');
+    const errorDiv = document.querySelector('.auth-error');
 
-    if (!emailInput || !passwordInput) {
-        console.error('Login input fields not found.');
-        return;
-    }
-
-    // Debugging: Log the input elements and their values
-    console.log('Email Input Element:', emailInput);
-    console.log('Password Input Element:', passwordInput);
-    console.log('Email Input Value:', emailInput.value);
-    console.log('Password Input Value:', passwordInput.value);
+    if (!emailInput || !passwordInput) return;
 
     const email = emailInput.value.trim();
     const password = passwordInput.value.trim();
 
     if (!email || !password) {
-        alert('Please fill in all fields.');
+        errorDiv.textContent = 'Please fill in all fields.';
+        errorDiv.style.display = 'block';
         return;
     }
 
@@ -155,23 +156,25 @@ async function login(event) {
         });
 
         const data = await response.json();
-        if (data.token) {
+        if (response.ok && data.token) {
             localStorage.setItem('token', data.token);
-            alert('Login successful!');
+            errorDiv.style.display = 'none';
+            alert('Successfully logged in!');
+            window.location.reload();
         } else {
-            alert(data.error);
+            errorDiv.textContent = data.error || data.message || 'Login failed.';
+            errorDiv.style.display = 'block';
         }
     } catch (error) {
-        console.error('Error during login:', error);
-        alert('An error occurred during login.');
+        errorDiv.textContent = error.message || 'An error occurred during login.';
+        errorDiv.style.display = 'block';
     }
 }
 
 function logout() {
     localStorage.removeItem('token');
     alert('Logged out');
-    document.getElementById('authContainer').style.display = 'block';
-    document.querySelector('.container').style.display = 'none';
+    updateAuthButton();
 }
 
 function updateAuthButton() {
@@ -191,7 +194,8 @@ function updateAuthButton() {
 
 // Check authentication state on page load
 document.addEventListener('DOMContentLoaded', () => {
-    // Temporarily disable login logic
     document.getElementById('authContainer').style.display = 'none';
     document.querySelector('.container').style.display = 'block';
 });
+
+app.listen(5005, () => console.log("Server running on port 5005"));
