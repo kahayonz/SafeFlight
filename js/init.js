@@ -7,10 +7,10 @@ window.state = {
 
 // initialize when DOM loads
 document.addEventListener('DOMContentLoaded', () => {
-    if (!state.map) { // double initialization fix
+    if (!state.map) { // Prevent double initialization
         initMap();
-        initializeAuth();
     }
+    initializeAuth(); // Move this here to ensure DOM is fully loaded
     initializeEventListeners();
     loadAirportsData();
 });

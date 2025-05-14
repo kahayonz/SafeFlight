@@ -1,4 +1,4 @@
-const apiUrl = 'http://localhost:5001/auth'; // Make sure port matches your server.js port
+const apiUrl = 'http://localhost:5005/auth'; 
 
 function initializeAuth() {
     // Add login button to body
@@ -12,7 +12,7 @@ function initializeAuth() {
     overlay.className = 'login-overlay';
     overlay.innerHTML = `
         <div class="login-container" id="authContainer">
-            <h2>Login</h2>
+            <h2 id="authTitle">Login</h2>
             <div class="auth-error"></div>
             <form id="authForm">
                 <div class="form-group">
@@ -23,9 +23,9 @@ function initializeAuth() {
                     <label for="loginPassword">Password</label>
                     <input type="password" id="loginPassword" required>
                 </div>
-                <button type="button" class="auth-submit" onclick="login()">Login</button>
+                <button type="button" class="auth-submit" id="authSubmit">Login</button>
                 <div class="auth-switch">
-                    Don't have an account? <span id="switchMode" onclick="toggleAuthMode()">Sign up</span>
+                    Don't have an account? <span id="switchMode">Sign up</span>
                 </div>
             </form>
             <form id="registerForm" style="display: none;">
@@ -38,9 +38,9 @@ function initializeAuth() {
                     <label for="registerPassword">Password</label>
                     <input type="password" id="registerPassword" required>
                 </div>
-                <button type="button" class="auth-submit" onclick="register()">Register</button>
+                <button type="button" class="auth-submit" id="registerSubmit">Register</button>
                 <div class="auth-switch">
-                    Already have an account? <span id="switchMode" onclick="toggleAuthMode()">Login</span>
+                    Already have an account? <span id="switchModeBack">Login</span>
                 </div>
             </form>
         </div>
@@ -58,12 +58,54 @@ function initializeAuth() {
         }
     });
 
+    // Add functionality for login and registration
+    document.getElementById('authSubmit').addEventListener('click', login);
+    document.getElementById('registerSubmit').addEventListener('click', register);
+
+    // Toggle between login and registration forms
+    document.getElementById('switchMode').addEventListener('click', () => {
+        document.getElementById('authForm').style.display = 'none';
+        document.getElementById('registerForm').style.display = 'block';
+        document.getElementById('authTitle').textContent = 'Register';
+    });
+
+    document.getElementById('switchModeBack').addEventListener('click', () => {
+        document.getElementById('authForm').style.display = 'block';
+        document.getElementById('registerForm').style.display = 'none';
+        document.getElementById('authTitle').textContent = 'Login';
+    });
+
+    // Debug input changes
+    document.addEventListener('input', (e) => {
+        if (e.target.id === 'loginEmail' || e.target.id === 'loginPassword') {
+            console.log(`${e.target.id} value:`, e.target.value);
+        }
+    });
+
     updateAuthButton();
 }
 
-async function register() {
-    const email = document.getElementById('registerEmail').value;
-    const password = document.getElementById('registerPassword').value;
+async function register(event) {
+    event.preventDefault(); // Prevent form submission
+
+    const emailInput = document.getElementById('registerEmail');
+    const passwordInput = document.getElementById('registerPassword');
+
+    if (!emailInput || !passwordInput) {
+        console.error('Register input fields not found.');
+        return;
+    }
+
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
+
+    console.log('Register Email:', email); // Debugging log
+    console.log('Register Password:', password); // Debugging log
+
+    if (!email || !password) {
+        alert('Please fill in all fields.');
+        return;
+    }
 
     try {
         const response = await fetch(`${apiUrl}/register`, {
@@ -80,9 +122,30 @@ async function register() {
     }
 }
 
-async function login() {
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
+async function login(event) {
+    event.preventDefault(); // Prevent form submission
+
+    const emailInput = document.getElementById('loginEmail');
+    const passwordInput = document.getElementById('loginPassword');
+
+    if (!emailInput || !passwordInput) {
+        console.error('Login input fields not found.');
+        return;
+    }
+
+    // Debugging: Log the input elements and their values
+    console.log('Email Input Element:', emailInput);
+    console.log('Password Input Element:', passwordInput);
+    console.log('Email Input Value:', emailInput.value);
+    console.log('Password Input Value:', passwordInput.value);
+
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
+
+    if (!email || !password) {
+        alert('Please fill in all fields.');
+        return;
+    }
 
     try {
         const response = await fetch(`${apiUrl}/login`, {
@@ -95,8 +158,6 @@ async function login() {
         if (data.token) {
             localStorage.setItem('token', data.token);
             alert('Login successful!');
-            document.getElementById('authContainer').style.display = 'none';
-            document.querySelector('.container').style.display = 'block';
         } else {
             alert(data.error);
         }
@@ -111,18 +172,6 @@ function logout() {
     alert('Logged out');
     document.getElementById('authContainer').style.display = 'block';
     document.querySelector('.container').style.display = 'none';
-}
-
-function toggleAuthMode() {
-    const authForm = document.getElementById('authForm');
-    const registerForm = document.getElementById('registerForm');
-    if (authForm.style.display === 'none') {
-        authForm.style.display = 'block';
-        registerForm.style.display = 'none';
-    } else {
-        authForm.style.display = 'none';
-        registerForm.style.display = 'block';
-    }
 }
 
 function updateAuthButton() {
@@ -142,12 +191,7 @@ function updateAuthButton() {
 
 // Check authentication state on page load
 document.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        document.getElementById('authContainer').style.display = 'block';
-        document.querySelector('.container').style.display = 'none';
-    } else {
-        document.getElementById('authContainer').style.display = 'none';
-        document.querySelector('.container').style.display = 'block';
-    }
+    // Temporarily disable login logic
+    document.getElementById('authContainer').style.display = 'none';
+    document.querySelector('.container').style.display = 'block';
 });

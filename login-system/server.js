@@ -17,9 +17,7 @@ mongoose
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => console.log(err));
 
-app.listen(5001, () => console.log("Server running on port 5001"));
+app.listen(5005, () => console.log("Server running on port 5005"));
 
 const authRoutes = require("./routes/authRoutes");
 app.use("/auth", authRoutes);
-
-app.listen(5001, () => console.log('Server running on port 5001'));
