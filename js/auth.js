@@ -231,14 +231,31 @@ function showUserOverlay(email) {
         userOverlay.remove();
     };
 
-    document.getElementById('flightDetailsForm').onsubmit = function(e) {
+    document.getElementById('flightDetailsForm').onsubmit = async function(e) {
         e.preventDefault();
         const date = document.getElementById('flightDate').value;
         const destination = document.getElementById('flightDestination').value.trim();
         if (date && destination) {
-            localStorage.setItem('flightDetails', JSON.stringify({ date, destination }));
-            alert('Flight details saved!');
-            userOverlay.remove();
+            const token = localStorage.getItem('token');
+            try {
+                const response = await fetch(`${apiUrl}/save-flight`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ date, destination })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Flight details saved!');
+                    userOverlay.remove();
+                } else {
+                    alert(data.error || 'Failed to save flight details.');
+                }
+            } catch (err) {
+                alert('Network error.');
+            }
         }
     };
 }
