@@ -43,4 +43,11 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Logout (stateless, just for frontend compatibility)
+router.post('/logout', (req, res) => {
+    // If you want to blacklist tokens, you can do it here.
+    // For now, just respond with success.
+    res.json({ message: 'Logged out successfully' });
+});
+
 module.exports = router;
