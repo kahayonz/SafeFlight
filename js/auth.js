@@ -98,8 +98,15 @@ async function register(event) {
     const email = emailInput.value.trim();
     const password = passwordInput.value.trim();
 
+    // Email validation using regex
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !password) {
         errorDiv.textContent = 'Please fill in all fields.';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    if (!emailPattern.test(email)) {
+        errorDiv.textContent = 'Please enter a valid email address.';
         errorDiv.style.display = 'block';
         return;
     }
@@ -197,5 +204,3 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('authContainer').style.display = 'none';
     document.querySelector('.container').style.display = 'block';
 });
-
-app.listen(5005, () => console.log("Server running on port 5005"));
