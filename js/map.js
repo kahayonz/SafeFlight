@@ -280,7 +280,7 @@ function filterCountries(riskLevel) {
 function updateInfoPanel(properties) {
     const countryName = properties.ADMIN || properties.name || 'Unknown';
     document.querySelector('.info-value.location').textContent = countryName;
-    document.querySelector('.info-value.disease').textContent = properties.disease || 'No data';
+    document.querySelector('.info-value.disease').textContent = 'COVID-19';
     document.querySelector('.info-value.cases').textContent = properties.cases || '0';
     updateNewsPanel(countryName);
     // Remove CDC summary always (will be shown by news panel logic)
