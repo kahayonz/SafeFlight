@@ -1,10 +1,11 @@
 function initMap() {
     window.state.map = L.map('map', {
-        minZoom: 2,  // Prevent zooming out too far
-        maxZoom: 8,  // Prevent zooming in too far
+        minZoom: 2,  
+        maxZoom: 8,  
         maxBounds: L.latLngBounds(
-            L.latLng(-85, -180), // Southwest corner
-            L.latLng(85, 180)    // Northeast corner
+            //corner bounds
+            L.latLng(-85, -180),
+            L.latLng(85, 180)   
         ),
         maxBoundsViscosity: 1.0,
         wheelDebounceTime: 150,
@@ -82,7 +83,7 @@ async function loadGeoJSON(retryCount = 3) {
     `;
 }
 
-// Map styles and utilities
+//map styles and utilities
 function getCountryStyle(riskLevel) {
     return {
         weight: 1.5,        // Slightly thicker borders
@@ -98,7 +99,7 @@ function getCountryStyle(riskLevel) {
     };
 }
 
-// Map interaction handlers
+// map interaction handlers
 function onEachFeature(feature, layer) {
     layer.bindTooltip(feature.properties.ADMIN || feature.properties.name, {
         permanent: false,
@@ -148,11 +149,13 @@ function onFeatureClick(e) {
         const boundsArea = Math.abs(bounds.getNorth() - bounds.getSouth()) * 
                           Math.abs(bounds.getEast() - bounds.getWest());
         
-        // Check if country crosses the international date line
+
+        //maofix: for countries like the USA or Norway that is near the border or big countries like Russia
+        // check if country crosses the date line
         const crossesDateLine = bounds.getWest() > bounds.getEast();
         
         if (crossesDateLine) {
-            // Adjust bounds for countries that cross the international date line
+            // Adjust bounds for countries that cross the date line
             const adjustedBounds = [
                 [bounds.getSouth(), bounds.getEast()],
                 [bounds.getNorth(), bounds.getWest()]

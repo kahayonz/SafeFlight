@@ -1,4 +1,5 @@
-// auth.js
+const apiUrl = 'http://localhost:5005/auth'; 
+
 function initializeAuth() {
     // Add login button to body
     const authButton = document.createElement('button');
@@ -10,28 +11,43 @@ function initializeAuth() {
     const overlay = document.createElement('div');
     overlay.className = 'login-overlay';
     overlay.innerHTML = `
-        <div class="login-container">
-            <h2>Login</h2>
+        <div class="login-container" id="authContainer">
+            <h2 id="authTitle">Login</h2>
             <div class="auth-error"></div>
             <form id="authForm">
                 <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" required>
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" required>
                 </div>
                 <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" required>
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" required>
                 </div>
-                <button type="submit" class="auth-submit">Login</button>
+                <button type="button" class="auth-submit" id="authSubmit">Login</button>
                 <div class="auth-switch">
                     Don't have an account? <span id="switchMode">Sign up</span>
+                </div>
+            </form>
+            <form id="registerForm" style="display: none;">
+                <!-- Only one Register title, handled by #authTitle -->
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Password</label>
+                    <input type="password" id="registerPassword" required>
+                </div>
+                <button type="button" class="auth-submit" id="registerSubmit">Register</button>
+                <div class="auth-switch">
+                    Already have an account? <span id="switchModeBack">Login</span>
                 </div>
             </form>
         </div>
     `;
     document.body.appendChild(overlay);
 
-    // Event Listeners
+    // Login button listener
     authButton.addEventListener('click', () => {
         overlay.style.display = 'flex';
     });
@@ -42,78 +58,139 @@ function initializeAuth() {
         }
     });
 
-    const authForm = document.getElementById('authForm');
-    const switchMode = document.getElementById('switchMode');
-    const errorDiv = document.querySelector('.auth-error');
-    let isLoginMode = true;
+    // Add functionality for login and registration
+    document.getElementById('authSubmit').addEventListener('click', login);
+    document.getElementById('registerSubmit').addEventListener('click', register);
 
-    switchMode.addEventListener('click', () => {
-        isLoginMode = !isLoginMode;
-        authForm.querySelector('h2').textContent = isLoginMode ? 'Login' : 'Sign Up';
-        authForm.querySelector('.auth-submit').textContent = isLoginMode ? 'Login' : 'Sign Up';
-        switchMode.textContent = isLoginMode ? 'Sign up' : 'Login';
-        authForm.querySelector('.auth-switch').innerHTML = 
-            isLoginMode ? 'Don\'t have an account? <span id="switchMode">Sign up</span>' 
-                       : 'Already have an account? <span id="switchMode">Login</span>';
+    // Toggle between login and registration forms
+    document.getElementById('switchMode').addEventListener('click', () => {
+        document.getElementById('authForm').style.display = 'none';
+        document.getElementById('registerForm').style.display = 'block';
+        document.getElementById('authTitle').textContent = 'Register';
+        // Hide error message when switching to register
+        const errorDiv = document.querySelector('.auth-error');
         errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
     });
 
-    authForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-
-        if (isLoginMode) {
-            handleLogin(username, password);
-        } else {
-            handleSignup(username, password);
-        }
+    document.getElementById('switchModeBack').addEventListener('click', () => {
+        document.getElementById('authForm').style.display = 'block';
+        document.getElementById('registerForm').style.display = 'none';
+        document.getElementById('authTitle').textContent = 'Login';
+        // Hide error message when switching to login
+        const errorDiv = document.querySelector('.auth-error');
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
     });
+
+    updateAuthButton();
 }
 
-function handleLogin(username, password) {
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
+async function register(event) {
+    event.preventDefault();
+
+    const emailInput = document.getElementById('registerEmail');
+    const passwordInput = document.getElementById('registerPassword');
     const errorDiv = document.querySelector('.auth-error');
 
-    if (users[username] && users[username] === password) {
-        localStorage.setItem('currentUser', username);
-        document.querySelector('.login-overlay').style.display = 'none';
-        updateAuthButton();
-        errorDiv.style.display = 'none';
-    } else {
-        errorDiv.textContent = 'Invalid username or password';
+    if (!emailInput || !passwordInput) return;
+
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
+
+    // Email validation using regex
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !password) {
+        errorDiv.textContent = 'Please fill in all fields.';
         errorDiv.style.display = 'block';
+        return;
     }
-}
-
-function handleSignup(username, password) {
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
-    const errorDiv = document.querySelector('.auth-error');
-
-    if (users[username]) {
-        errorDiv.textContent = 'Username already exists';
+    if (!emailPattern.test(email)) {
+        errorDiv.textContent = 'Please enter a valid email address.';
         errorDiv.style.display = 'block';
         return;
     }
 
-    users[username] = password;
-    localStorage.setItem('users', JSON.stringify(users));
-    localStorage.setItem('currentUser', username);
-    document.querySelector('.login-overlay').style.display = 'none';
+    try {
+        const response = await fetch(`${apiUrl}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            errorDiv.style.display = 'none';
+            // Switch to login tab and show a message
+            document.getElementById('authForm').style.display = 'block';
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('authTitle').textContent = 'Login';
+            errorDiv.textContent = 'Registration successful! Please log in.';
+            errorDiv.style.display = 'block';
+        } else {
+            errorDiv.textContent = data.error || data.message || 'Registration failed.';
+            errorDiv.style.display = 'block';
+        }
+    } catch (error) {
+        errorDiv.textContent = error.message || 'An error occurred during registration.';
+        errorDiv.style.display = 'block';
+    }
+}
+
+async function login(event) {
+    event.preventDefault();
+
+    const emailInput = document.getElementById('loginEmail');
+    const passwordInput = document.getElementById('loginPassword');
+    const errorDiv = document.querySelector('.auth-error');
+
+    if (!emailInput || !passwordInput) return;
+
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
+
+    if (!email || !password) {
+        errorDiv.textContent = 'Please fill in all fields.';
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    try {
+        const response = await fetch(`${apiUrl}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+        if (response.ok && data.token) {
+            localStorage.setItem('token', data.token);
+            errorDiv.style.display = 'none';
+            alert('Successfully logged in!');
+            window.location.reload();
+        } else {
+            errorDiv.textContent = data.error || data.message || 'Login failed.';
+            errorDiv.style.display = 'block';
+        }
+    } catch (error) {
+        errorDiv.textContent = error.message || 'An error occurred during login.';
+        errorDiv.style.display = 'block';
+    }
+}
+
+function logout() {
+    localStorage.removeItem('token');
+    alert('Logged out');
     updateAuthButton();
-    errorDiv.style.display = 'none';
 }
 
 function updateAuthButton() {
     const authButton = document.querySelector('.auth-button');
-    const currentUser = localStorage.getItem('currentUser');
+    const token = localStorage.getItem('token');
 
-    if (currentUser) {
+    if (token) {
         authButton.textContent = 'Logout';
-        authButton.onclick = () => {
-            localStorage.removeItem('currentUser');
-            updateAuthButton();
-        };
+        authButton.onclick = logout;
     } else {
         authButton.textContent = 'Login';
         authButton.onclick = () => {
@@ -121,3 +198,9 @@ function updateAuthButton() {
         };
     }
 }
+
+// Check authentication state on page load
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('authContainer').style.display = 'none';
+    document.querySelector('.container').style.display = 'block';
+});
