@@ -14,6 +14,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     initializeEventListeners();
     loadAirportsData();
+
+    // Remove CDC summary if present
+    const infoPanel = document.querySelector('.info-panel');
+    if (infoPanel) {
+        const cdcDiv = infoPanel.querySelector('.cdc-nndss-summary');
+        if (cdcDiv) cdcDiv.remove();
+    }
 });
 
 // Simplified event listener initialization
@@ -85,7 +92,10 @@ function initializeBottomUIHandlers() {
             const currentLocation = document.querySelector('.info-value.location').textContent;
             if (currentLocation && currentLocation !== 'Select area') {
                 updateNewsPanel(currentLocation);
+                showCdcSummaryIfUS(); // <-- CDC summary only for US and only when expanded
             }
+        } else {
+            showCdcSummaryIfUS(); // Remove CDC summary if panel collapsed
         }
     });
 
@@ -106,6 +116,7 @@ function initializeBottomUIHandlers() {
                 const currentLocation = document.querySelector('.info-value.location').textContent;
                 if (currentLocation && currentLocation !== 'Select area') {
                     updateNewsPanel(currentLocation);
+                    showCdcSummaryIfUS();
                 }
             }
         }
@@ -163,6 +174,7 @@ function resetInfoPanel() {
             newsContainer.innerHTML = '<div class="news-item"><p>Select a country to view health alerts.</p></div>';
         }
     }
+    showCdcSummaryIfUS(); // Always remove CDC summary on reset
 }
 
 /*airport location for search*/
@@ -231,4 +243,25 @@ function loadBackupAirportData() {
     
     onAirportsLoaded(backupData);
     console.log('Loaded backup airports:', backupData.length);
+}
+
+// Patch: Show CDC summary only when US is selected and news panel is expanded
+// (Call this after updateNewsPanel in bottomUIHandle click logic)
+function showCdcSummaryIfUS() {
+    const currentLocation = document.querySelector('.info-value.location').textContent;
+    // Only show if US is selected and not 'Select area'
+    if ((currentLocation === 'United States' || currentLocation === 'United States of America') && window.state.isBottomUIExpanded) {
+        if (window.fetchAndDisplayNNDSSSummary) {
+            window.fetchAndDisplayNNDSSSummary(true);
+        } else if (typeof fetchAndDisplayNNDSSSummary === 'function') {
+            fetchAndDisplayNNDSSSummary(true);
+        }
+    } else {
+        // Remove CDC summary if not US, not expanded, or no country selected
+        let infoPanel = document.querySelector('.info-panel');
+        if (infoPanel) {
+            let cdcDiv = infoPanel.querySelector('.cdc-nndss-summary');
+            if (cdcDiv) cdcDiv.remove();
+        }
+    }
 }
