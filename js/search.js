@@ -30,10 +30,18 @@ function handleAirportSelection(airport) {
     // update search input
     document.getElementById('search').value = `${airport.city} (${airport.iata})`;
 
-    // find and highlight the country
+    // Find and highlight the country
+    let found = false;
+    let selectedLayerProps = null;
     if (state.geojsonLayer) {
         state.geojsonLayer.eachLayer(layer => {
-            if (layer.feature.properties.ADMIN === airport.country) {
+            // Try matching by ADMIN, name, and also log for debugging
+            const admin = (layer.feature.properties.ADMIN || '').toLowerCase();
+            const name = (layer.feature.properties.name || '').toLowerCase();
+            const airportCountry = (airport.country || '').toLowerCase();
+            if (admin === airportCountry || name === airportCountry) {
+                found = true;
+                selectedLayerProps = layer.feature.properties;
                 state.map.fitBounds(layer.getBounds());
                 layer.setStyle({
                     weight: 2,
@@ -41,15 +49,33 @@ function handleAirportSelection(airport) {
                     dashArray: '',
                     fillOpacity: 0.9
                 });
-                
-                updateInfoPanel(layer.feature.properties);
+                // Debug: log what is being matched
+                console.log('Matched country:', {admin, name, airportCountry, props: layer.feature.properties});
+            } else {
+                state.geojsonLayer.resetStyle(layer);
             }
         });
     }
+    // Always update info panel for the selected country (if found)
+    if (found && selectedLayerProps) {
+        updateInfoPanel(selectedLayerProps);
+    } else {
+        if (typeof resetInfoPanel === 'function') resetInfoPanel();
+    }
+    // Debug: log what was searched and found
+    if (!found) {
+        console.warn('No country match found for:', airport.country);
+        // Optionally, log all possible ADMIN and name values for debugging
+        if (state.geojsonLayer) {
+            state.geojsonLayer.eachLayer(layer => {
+                console.log('Available country:', layer.feature.properties.ADMIN, layer.feature.properties.name);
+            });
+        }
+    }
 
-    // update location in info panel
-    document.querySelector('.info-value.location').textContent = 
-        `${airport.city}, ${airport.country}`;
+    // Update location in info panel
+    // document.querySelector('.info-value.location').textContent = 
+    //     `${airport.city}, ${airport.country}`;
 }
 
 function onAirportsLoaded(data) {
