@@ -115,3 +115,37 @@ body.dark-mode .loading {
 .dark-mode .auth-switch {
     color: #fff;
 }
+
+/* Account overlay dark mode */
+body.dark-mode #userOverlay > div,
+.dark-mode #userOverlay > div {
+    background-color: #2c2c2c !important;
+    color: #fff !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.6) !important;
+}
+
+body.dark-mode #userOverlay h2,
+.dark-mode #userOverlay h2 {
+    color: #fff !important;
+}
+
+body.dark-mode #userOverlay label,
+.dark-mode #userOverlay input,
+body.dark-mode #userOverlay input[type="date"],
+body.dark-mode #userOverlay input[type="text"] {
+    color: #fff !important;
+    background-color: #3d3d3d !important;
+    border-color: #4d4d4d !important;
+}
+
+body.dark-mode #userOverlay button {
+    color: #fff !important;
+}
+
+body.dark-mode #userOverlay #logoutBtn {
+    background: #e74c3c !important;
+}
+
+body.dark-mode #userOverlay #closeUserOverlay {
+    background: #666 !important;
+}
