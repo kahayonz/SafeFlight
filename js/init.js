@@ -1,4 +1,3 @@
-// Make state globally accessible
 window.state = {
     geojsonLayer: null,
     currentRiskFilter: 'all',
@@ -6,12 +5,12 @@ window.state = {
     map: null
 };
 
-// Initialize everything when the document is ready
+// initialize when DOM loads
 document.addEventListener('DOMContentLoaded', () => {
-    if (!state.map) { // Add check to prevent double initialization
+    if (!state.map) { // Prevent double initialization
         initMap();
-        initializeAuth();
     }
+    initializeAuth(); // Move this here to ensure DOM is fully loaded
     initializeEventListeners();
     loadAirportsData();
 
@@ -23,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Simplified event listener initialization
+ //event listeners initialization
 function initializeEventListeners() {
     const elements = {
         search: document.getElementById('search'),
@@ -37,7 +36,7 @@ function initializeEventListeners() {
         return;
     }
 
-    // Event handlers
+    // event handlers
     const handlers = {
         search: (e) => e.key === 'Enter' && performSearch(e.target.value.trim()),
         searchBtn: () => elements.search.value && performSearch(elements.search.value.trim()),
@@ -53,7 +52,7 @@ function initializeEventListeners() {
         }
     };
 
-    // Add listeners
+    // listeners
     elements.search.addEventListener('keypress', handlers.search);
     elements.searchBtn.addEventListener('click', handlers.searchBtn);
     elements.riskButtons.forEach(btn => btn.addEventListener('click', () => handlers.risk(btn)));
@@ -80,7 +79,7 @@ function initializeBottomUIHandlers() {
     const bottomUIHandle = document.querySelector('.bottom-ui-handle');
     let startY, startHeight;
 
-    // Set initial state based on expanded class
+    // bottom ui expansion state
     window.state.isBottomUIExpanded = bottomUI.classList.contains('expanded');
 
     bottomUIHandle.addEventListener('click', () => {
@@ -99,7 +98,7 @@ function initializeBottomUIHandlers() {
         }
     });
 
-    // Handle touch events for height adjustment
+    // handle touch events for height diff
     bottomUIHandle.addEventListener('touchmove', (e) => {
         const touch = e.touches[0];
         const diff = startY - touch.clientY;
@@ -109,7 +108,7 @@ function initializeBottomUIHandlers() {
         const isExpanded = newHeight > window.innerHeight * 0.3;
         bottomUI.classList.toggle('expanded', isExpanded);
         
-        // Update state and load news if newly expanded
+        // update state and load news if newly expanded
         if (isExpanded !== window.state.isBottomUIExpanded) {
             window.state.isBottomUIExpanded = isExpanded;
             if (isExpanded) {
@@ -167,7 +166,7 @@ function resetInfoPanel() {
     elements.disease.textContent = '-';
     elements.cases.textContent = '-';
     
-    // Also reset news panel if expanded
+    //reset news panel if expanded
     if (state.isBottomUIExpanded) {
         const newsContainer = document.querySelector('.news-container');
         if (newsContainer) {
@@ -177,7 +176,7 @@ function resetInfoPanel() {
     showCdcSummaryIfUS(); // Always remove CDC summary on reset
 }
 
-/*airport location for search*/
+//airport location for search tnx github
 function loadAirportsData() {
     console.log('Starting airport data load...');
     fetch('https://raw.githubusercontent.com/algolia/datasets/master/airports/airports.json')
@@ -222,7 +221,7 @@ function loadAirportsData() {
 
 function loadBackupAirportData() {
     console.log('Loading backup airport data...');
-    // Minimal set of major airports as fallback
+    // delete later (temp airport list)
     const backupData = [
         {
             name: "London Heathrow Airport",
@@ -238,7 +237,7 @@ function loadBackupAirportData() {
             iata_code: "JFK",
             location: { lat: 40.6413, lng: -73.7781 }
         },
-        // Add more major airports as needed
+
     ];
     
     onAirportsLoaded(backupData);

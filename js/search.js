@@ -1,8 +1,13 @@
-// Global variables
+/*
+for mao,
+Features to add:
+autocomplete suggestion dropdown
+add countries with no iata code/no airports
+*/
 window.airports = []; 
 let airportsLoaded = false;
 
-// Simplified search logic
+// fixed logic for search
 function performSearch(query) {
     if (!airportsLoaded || !window.airports?.length) {
         console.warn('Airports data not yet loaded');
@@ -22,7 +27,7 @@ function performSearch(query) {
 function handleAirportSelection(airport) {
     if (!airport || !airport.country) return;
 
-    // Update search input
+    // update search input
     document.getElementById('search').value = `${airport.city} (${airport.iata})`;
 
     // Find and highlight the country
@@ -104,5 +109,5 @@ function onAirportsLoaded(data) {
     }
 }
 
-// Make these available globally
+// make loaded airports available to map/init.js
 window.onAirportsLoaded = onAirportsLoaded;

@@ -12,7 +12,7 @@
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  height: 100px; /* Set initial height */
+  height: 100px; 
 }
 
 .bottom-ui.expanded {
