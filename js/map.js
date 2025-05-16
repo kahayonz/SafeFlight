@@ -71,10 +71,7 @@ async function loadGeoJSON(retryCount = 3) {
         const iso3 = country.countryInfo.iso3;
         let monthlyCases = 0;
         try {
-            monthlyCases = await Promise.race([
-                getMonthlyCases(iso3),
-                new Promise(resolve => setTimeout(() => resolve(0), 2000)) // 2s timeout per country
-            ]);
+            monthlyCases = await getMonthlyCases(iso3); // Wait for real data, no timeout
         } catch (e) {
             monthlyCases = 0;
         }
@@ -88,11 +85,6 @@ async function loadGeoJSON(retryCount = 3) {
 
     // Debugging: Log health data mapping
     console.log('Health data mapping:', healthMap);
-
-    // Alert if some country data may be missing
-    if (Object.keys(healthMap).length < healthData.length) {
-        alert('Some country data may be missing due to slow network or API limits.');
-    }
 
     for (let i = 0; i < retryCount; i++) {
         try {
@@ -479,17 +471,18 @@ function addWrappedGeoJsonLayer(data, style, onEachFeature) {
 async function getMonthlyCases(iso3) {
     try {
         const res = await fetch(`https://disease.sh/v3/covid-19/historical/${iso3}?lastdays=31`);
-        if (!res.ok) return 0;
+        if (!res.ok) return 0; // No console.error here
         const data = await res.json();
         if (!data.timeline || !data.timeline.cases) return 0;
         const casesArr = Object.values(data.timeline.cases);
-        // Calculate new cases for each day, then sum last 30 days
         let monthlyCases = 0;
         for (let i = 1; i < casesArr.length; i++) {
             monthlyCases += Math.max(0, casesArr[i] - casesArr[i - 1]);
         }
         return monthlyCases;
     } catch (e) {
+        // Optionally, log only if not a 404
+        // if (!e.message.includes('404')) console.error(e);
         return 0;
     }
 }
