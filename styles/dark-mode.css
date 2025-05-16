@@ -149,3 +149,33 @@ body.dark-mode #userOverlay #logoutBtn {
 body.dark-mode #userOverlay #closeUserOverlay {
     background: #666 !important;
 }
+
+body.dark-mode .search-bar-fixed {
+  background: #2c2c2c;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+body.dark-mode .search-bar-fixed input[type="text"] {
+  background: transparent;
+  color: #fff;
+}
+
+body.dark-mode .search-bar-fixed .search-btn {
+  background: #3d3d3d;
+  color: #fff;
+}
+
+body.dark-mode .recent-searches-dropdown {
+  background: #232323;
+  color: #fff;
+  border-top: 1px solid #333;
+}
+
+body.dark-mode .recent-searches-dropdown .recent-item {
+  background: #232323;
+  color: #fff;
+}
+
+body.dark-mode .recent-searches-dropdown .recent-item:hover {
+  background: #333;
+}

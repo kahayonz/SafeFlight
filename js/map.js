@@ -1,48 +1,52 @@
 function initMap() {
     if (!window.state) {
-        console.error('window.state is not initialized. Ensure init.js is loaded before map.js.');
-        return;
+        window.state = {};
     }
 
-    // Check if a map instance already exists and remove it
+    // Remove existing map if present
     if (window.state.map) {
         window.state.map.remove();
         window.state.map = null;
     }
 
-    // Initialize the map
+    // Set bounds to the visible world (hard border)
+    const worldBounds = L.latLngBounds(
+        L.latLng(-85, -180), // Southwest
+        L.latLng(85, 180)    // Northeast
+    );
+
     window.state.map = L.map('map', {
-        minZoom: 2,  
-        maxZoom: 8,  
-        maxBounds: L.latLngBounds(
-            //corner bounds
-            L.latLng(-85, -180),
-            L.latLng(85, 180)   
-        ),
-        maxBoundsViscosity: 1.0,
-        wheelDebounceTime: 150,
-        wheelPxPerZoomLevel: 120,
+        center: [20, 0],
+        zoom: 3,
+        minZoom: 3,
+        maxZoom: 8,
         preferCanvas: true,
         zoomSnap: 0.5,
         zoomDelta: 0.5,
-        bounceAtZoomLimits: true,
-        worldCopyJump: true,
+        bounceAtZoomLimits: false, // Prevent bouncing at the edge
+        wheelDebounceTime: 150,
+        wheelPxPerZoomLevel: 120,
         fadeAnimation: true,
         markerZoomAnimation: true,
         zoomAnimation: true,
         renderer: L.canvas({
             padding: 0.5,
             tolerance: 10
-        })
-    }).setView([20, 0], 3);
+        }),
+        zoomControl: false,
+        maxBounds: worldBounds,      // Hard border: can't scroll out of the map
+        maxBoundsViscosity: 1.0      // 1.0 = hard limit, can't pan outside
+    });
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+    // Add tile layer with no horizontal wrapping
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         attribution: '©OpenStreetMap, ©CartoDB',
         maxZoom: 19,
-        keepBuffer: 2,
-        updateWhenIdle: true,
-        updateWhenZooming: false
+        noWrap: true // Prevent infinite horizontal panning
     }).addTo(window.state.map);
+
+    // Add zoom control to bottom right
+    L.control.zoom({ position: 'bottomright' }).addTo(window.state.map);
 
     loadGeoJSON();
 }
@@ -104,31 +108,37 @@ async function loadGeoJSON(retryCount = 3) {
                     console.log('Feature properties after update:', feature.properties);
                 });
 
-                // Apply styles based on cases
-                window.state.geojsonLayer = L.geoJSON(data, {
-                    style: (feature) => {
-                        const cases = feature.properties.cases;
-                        let fillColor;
-                        if (cases > 1000000) fillColor = '#800026'; // High cases
-                        else if (cases > 500000) fillColor = '#BD0026';
-                        else if (cases > 100000) fillColor = '#E31A1C';
-                        else if (cases > 50000) fillColor = '#FC4E2A';
-                        else if (cases > 10000) fillColor = '#FD8D3C';
-                        else if (cases > 1000) fillColor = '#FEB24C';
-                        else fillColor = '#FFEDA0'; // Low cases
+                // Remove previous layers if present
+                if (window.state.geojsonLayers) {
+                    window.state.geojsonLayers.forEach(layer => window.state.map.removeLayer(layer));
+                }
 
-                        return {
-                            fillColor,
-                            weight: 1,
-                            opacity: 1,
-                            color: 'white',
-                            dashArray: '3',
-                            fillOpacity: 0.7
-                        };
-                    },
-                    onEachFeature: onEachFeature,
-                    bubblingMouseEvents: false
-                }).addTo(window.state.map);
+                // Prepare style and onEachFeature
+                const style = (feature) => {
+                    const cases = feature.properties.cases;
+                    let fillColor;
+                    if (cases > 1000000) fillColor = '#800026';
+                    else if (cases > 500000) fillColor = '#BD0026';
+                    else if (cases > 100000) fillColor = '#E31A1C';
+                    else if (cases > 50000) fillColor = '#FC4E2A';
+                    else if (cases > 10000) fillColor = '#FD8D3C';
+                    else if (cases > 1000) fillColor = '#FEB24C';
+                    else fillColor = '#FFEDA0';
+                    return {
+                        fillColor,
+                        weight: 1,
+                        opacity: 1,
+                        color: 'white',
+                        dashArray: '3',
+                        fillOpacity: 0.7
+                    };
+                };
+
+                // Use your addWrappedGeoJsonLayer utility
+                addWrappedGeoJsonLayer(data, style, onEachFeature);
+
+                // For compatibility with existing code, set geojsonLayer to the original
+                window.state.geojsonLayer = window.state.geojsonLayers[0];
 
                 filterCountries('all');
                 loadingEl.classList.remove('active');
@@ -170,7 +180,9 @@ function getCountryStyle(riskLevel) {
 
 // map interaction handlers
 function onEachFeature(feature, layer) {
-    layer.bindTooltip(feature.properties.ADMIN || feature.properties.name, {
+    // Use ADMIN or NAME_EN for English
+    const englishName = feature.properties.ADMIN || feature.properties.NAME_EN || feature.properties.name;
+    layer.bindTooltip(englishName, {
         permanent: false,
         direction: 'center',
         className: 'country-label',
@@ -216,71 +228,82 @@ function onFeatureClick(e) {
     elements.disease.textContent = 'COVID-19';
     elements.cases.textContent = `Cases: ${cases}`;
 
-    // Adjust map bounds
+    // Adjust map bounds with a drastic zoom but keep the whole country in frame with extra space
+    let fitBounds = bounds;
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
+
+    // For USA, use custom bounds to exclude Alaska and Hawaii
     if (country === "United States of America" || country === "United States") {
-        // Custom bounds for USA to exclude Alaska and Hawaii
         window.state.map.fitBounds([
             [24.396308, -125.000000], // Southwest point
             [49.384358, -66.934570]   // Northeast point
         ], {
             maxZoom: 4,
-            padding: [50, 50],
+            padding: [120, 120], // Extra space
             animate: true,
-            duration: 1
+            duration: 1.2
         });
-    } else {
-        const boundsArea = Math.abs(bounds.getNorth() - bounds.getSouth()) * 
-                          Math.abs(bounds.getEast() - bounds.getWest());
-        
-
-        //maofix: for countries like the USA or Norway that is near the border or big countries like Russia
-        // check if country crosses the date line
-        const crossesDateLine = bounds.getWest() > bounds.getEast();
-        
-        if (crossesDateLine) {
-            const adjustedBounds = L.latLngBounds(
-                L.latLng(bounds.getSouth(), bounds.getWest()),
-                L.latLng(bounds.getNorth(), bounds.getEast() + 360)
-            );
-            window.state.map.fitBounds(adjustedBounds, {
-                maxZoom: Math.min(6, Math.max(2, 10 - Math.log2(boundsArea))),
-                padding: [50, 50],
-                animate: true,
-                duration: 1
-            });
-        } else {
-            window.state.map.fitBounds(bounds, {
-                maxZoom: Math.min(6, Math.max(2, 10 - Math.log2(boundsArea))),
-                padding: [50, 50],
-                animate: true,
-                duration: 1
-            });
-        }
+        return;
     }
+
+    // For countries crossing the dateline, adjust bounds
+    const crossesDateLine = sw.lng > ne.lng;
+    if (crossesDateLine) {
+        fitBounds = L.latLngBounds(
+            [sw.lat, sw.lng],
+            [ne.lat, ne.lng + 360]
+        );
+    }
+
+    // Drastic zoom: allow up to zoom 7, but always fit the whole country with extra padding
+    window.state.map.fitBounds(fitBounds, {
+        maxZoom: 7,
+        padding: [120, 120], // Extra space around the country
+        animate: true,
+        duration: 1.2
+    });
 }
 
 function filterCountries(riskLevel) {
-    if (!window.state.geojsonLayer) return;
+    if (!window.state.geojsonLayers) return;
     window.state.currentRiskFilter = riskLevel;
-    
-    const highlightColor = document.body.classList.contains('dark-mode') ? '#fff' : '#000';
-    
-    window.state.geojsonLayer.eachLayer((layer) => {
-        const countryRisk = layer.feature.properties.riskLevel;
-        const styles = riskLevel === 'all' 
-            ? { opacity: 1, fillOpacity: 0.7 }
-            : countryRisk === riskLevel 
-                ? { opacity: 1, fillOpacity: 0.9, weight: 2, color: highlightColor, dashArray: '' }
-                : { opacity: 0.2, fillOpacity: 0.1, weight: 1, color: 'white', dashArray: '3' };
-        
-        layer.setStyle(styles);
+
+    window.state.geojsonLayers.forEach(layerGroup => {
+        layerGroup.eachLayer((layer) => {
+            const countryRisk = layer.feature.properties.riskLevel;
+            // Always reset to default style first to clear any previous highlight
+            layerGroup.resetStyle(layer);
+
+            // Now apply highlight if needed
+            if (riskLevel !== 'all' && countryRisk === riskLevel) {
+                const highlightColor = document.body.classList.contains('dark-mode') ? '#fff' : '#000';
+                layer.setStyle({
+                    opacity: 1,
+                    fillOpacity: 0.9,
+                    weight: 2,
+                    color: highlightColor,
+                    dashArray: ''
+                });
+            } else if (riskLevel !== 'all') {
+                layer.setStyle({
+                    opacity: 0.2,
+                    fillOpacity: 0.1,
+                    weight: 1,
+                    color: 'white',
+                    dashArray: '3'
+                });
+            }
+            // If 'all', the resetStyle above is enough (default color restored)
+        });
     });
 }
 
 // Patch: Only show CDC NNDSS summary when US is selected AND news panel is expanded
 // Remove CDC summary from updateInfoPanel
 function updateInfoPanel(properties) {
-    const countryName = properties.ADMIN || properties.name || 'Unknown';
+    // Use ADMIN or NAME_EN for English
+    const countryName = properties.ADMIN || properties.NAME_EN || properties.name || 'Unknown';
     document.querySelector('.info-value.location').textContent = countryName;
     document.querySelector('.info-value.disease').textContent = 'COVID-19';
     document.querySelector('.info-value.cases').textContent = properties.cases || '0';
@@ -415,7 +438,39 @@ async function fetchAndDisplayNNDSSSummary(onlyUS = false) {
     }
 }
 
+// Shift all coordinates of a feature by given degrees longitude
+function shiftFeatureLongitude(feature, shift) {
+    const newFeature = JSON.parse(JSON.stringify(feature));
+    function shiftCoords(coords) {
+        return coords.map(c =>
+            Array.isArray(c[0])
+                ? shiftCoords(c)
+                : [c[0] + shift, c[1]]
+        );
+    }
+    if (newFeature.geometry.type === "Polygon") {
+        newFeature.geometry.coordinates = shiftCoords(newFeature.geometry.coordinates);
+    } else if (newFeature.geometry.type === "MultiPolygon") {
+        newFeature.geometry.coordinates = newFeature.geometry.coordinates.map(shiftCoords);
+    }
+    return newFeature;
+}
+
 // Call after map loads
 initMap();
 loadHealthEvents();
 fetchAndDisplayNNDSSSummary();
+
+// Replace addWrappedGeoJsonLayer with a single-world version
+function addWrappedGeoJsonLayer(data, style, onEachFeature) {
+    // Remove previous layers if present
+    if (window.state.geojsonLayers) {
+        window.state.geojsonLayers.forEach(layer => window.state.map.removeLayer(layer));
+    }
+
+    // Only add the original world (no wrapping)
+    const original = L.geoJSON(data, { style, onEachFeature }).addTo(window.state.map);
+
+    window.state.geojsonLayers = [original];
+    window.state.geojsonLayer = original;
+}
