@@ -16,33 +16,23 @@
 </head>
 <body>
   <div class="container">
-    <div class="top-ui">
-      <div class="header">
-        <h1>SafeFlight</h1>
-        <p>Global Disease Tracking</p>
+    <!-- Add search bar here, outside .top-ui -->
+    <div class="search-bar-fixed">
+      <input type="text" 
+             placeholder="Search airports..." 
+             id="search" 
+             autocomplete="off" 
+             spellcheck="false">
+      <button id="searchBtn" class="search-btn">🔍</button>
+    </div>
+    <div class="top-ui expanded" id="topUI">
+      <div class="top-ui-handle">
+        <div class="top-handle-indicator"></div>
       </div>
-      
       <div class="controls-wrapper">
-        <div class="search-container">
-          <input type="text" 
-                 placeholder="Search airports..." 
-                 id="search" 
-                 autocomplete="off" 
-                 spellcheck="false">
-          <button id="searchBtn" class="search-btn">🔍</button>
-        </div>
-
-        <button id="resetZoom" class="reset-zoom-btn" title="Reset map view">
-          🗺️
-        </button>
-
-        <div class="mode-toggle">
-          <button id="darkModeToggle" class="mode-btn">
-            <span class="mode-icon">☀️</span>
-          </button>
-        </div>
+        <button id="resetZoom" class="reset-zoom-btn" title="Reset map view">🗺️</button>
+        <button id="darkModeToggle" class="mode-btn"><span class="mode-icon">☀️</span></button>
       </div>
-
       <div class="risk-level">
         <div class="risk-buttons">
           <button class="risk-btn active" data-risk="all">All</button>

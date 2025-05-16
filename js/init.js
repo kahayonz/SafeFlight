@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeAuth(); // Move this here to ensure DOM is fully loaded
     initializeEventListeners();
     loadAirportsData();
+    initializeTopUIHandle();
+    initializeTopUIToggle();
 
     // Remove CDC summary if present
     const infoPanel = document.querySelector('.info-panel');
@@ -22,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
- //event listeners initialization
+//event listeners initialization
 function initializeEventListeners() {
     const elements = {
         search: document.getElementById('search'),
@@ -47,7 +49,11 @@ function initializeEventListeners() {
         },
         reset: () => {
             cleanupMarkers();
-            state.map.setView([20, 0], 3);
+            // Set to the maximum zoomed-out level
+            if (window.state && window.state.map) {
+                const minZoom = window.state.map.getMinZoom ? window.state.map.getMinZoom() : 2;
+                window.state.map.setView([20, 0], minZoom);
+            }
             resetInfoPanel();
         }
     };
@@ -250,10 +256,10 @@ function showCdcSummaryIfUS() {
     const currentLocation = document.querySelector('.info-value.location').textContent;
     // Only show if US is selected and not 'Select area'
     if ((currentLocation === 'United States' || currentLocation === 'United States of America') && window.state.isBottomUIExpanded) {
-        if (window.fetchAndDisplayNNDSSSummary) {
-            window.fetchAndDisplayNNDSSSummary(true);
-        } else if (typeof fetchAndDisplayNNDSSSummary === 'function') {
-            fetchAndDisplayNNDSSSummary(true);
+        if (window.fetchAndDisplayNNDSSummary) {
+            window.fetchAndDisplayNNDSSummary(true);
+        } else if (typeof fetchAndDisplayNNDSSummary === 'function') {
+            fetchAndDisplayNNDSSummary(true);
         }
     } else {
         // Remove CDC summary if not US, not expanded, or no country selected
@@ -263,4 +269,58 @@ function showCdcSummaryIfUS() {
             if (cdcDiv) cdcDiv.remove();
         }
     }
+}
+
+function initializeTopUIHandle() {
+    const topUI = document.querySelector('.top-ui');
+    const topUIHandle = document.querySelector('.top-ui-handle');
+    if (!topUI || !topUIHandle) return;
+
+    // Start expanded
+    topUI.classList.add('expanded');
+    topUI.classList.remove('collapsed');
+
+    topUIHandle.addEventListener('click', () => {
+        const isCollapsed = topUI.classList.contains('collapsed');
+        topUI.classList.toggle('collapsed', !isCollapsed);
+        topUI.classList.toggle('expanded', isCollapsed);
+
+        if (!isCollapsed) {
+            // Collapsing: lock scroll immediately
+            document.body.classList.add('top-ui-locked');
+            document.documentElement.classList.add('top-ui-locked');
+        } else {
+            // Expanding: wait for transition to finish before unlocking scroll
+            const onTransitionEnd = () => {
+                document.body.classList.remove('top-ui-locked');
+                document.documentElement.classList.remove('top-ui-locked');
+                topUI.removeEventListener('transitionend', onTransitionEnd);
+            };
+            topUI.addEventListener('transitionend', onTransitionEnd);
+        }
+    });
+}
+
+function initializeTopUIToggle() {
+    const topUI = document.getElementById('topUI');
+    const toggleBtn = document.getElementById('topUIToggleBtn');
+    if (!topUI || !toggleBtn) return;
+
+    // Start expanded
+    topUI.classList.add('expanded');
+    topUI.classList.remove('collapsed');
+
+    toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isCollapsed = topUI.classList.contains('collapsed');
+        topUI.classList.toggle('collapsed', !isCollapsed);
+        topUI.classList.toggle('expanded', isCollapsed);
+
+        // Prevent page scroll when tab is hidden
+        if (!isCollapsed) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+    });
 }
