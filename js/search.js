@@ -7,21 +7,41 @@ add countries with no iata code/no airports
 window.airports = []; 
 let airportsLoaded = false;
 
-// fixed logic for search
+// Search for countries by name (ADMIN or name property)
 function performSearch(query) {
-    if (!airportsLoaded || !window.airports?.length) {
-        console.warn('Airports data not yet loaded');
+    if (!window.state.geojsonLayer) {
+        console.warn('GeoJSON data not yet loaded');
         return;
     }
 
     const normalizedQuery = query.toLowerCase().trim();
-    const airport = window.airports.find(airport => 
-        airport.iata.toLowerCase() === normalizedQuery ||
-        airport.city.toLowerCase().includes(normalizedQuery) ||
-        airport.country.toLowerCase().includes(normalizedQuery)
-    );
+    let found = false;
+    let selectedLayerProps = null;
 
-    if (airport) handleAirportSelection(airport);
+    window.state.geojsonLayer.eachLayer(layer => {
+        const admin = (layer.feature.properties.ADMIN || '').toLowerCase();
+        const name = (layer.feature.properties.name || '').toLowerCase();
+        if (admin.includes(normalizedQuery) || name.includes(normalizedQuery)) {
+            found = true;
+            selectedLayerProps = layer.feature.properties;
+            window.state.map.fitBounds(layer.getBounds());
+            layer.setStyle({
+                weight: 2,
+                color: document.body.classList.contains('dark-mode') ? '#fff' : '#000',
+                dashArray: '',
+                fillOpacity: 0.9
+            });
+        } else {
+            window.state.geojsonLayer.resetStyle(layer);
+        }
+    });
+
+    // Update info panel for the selected country (if found)
+    if (found && selectedLayerProps) {
+        updateInfoPanel(selectedLayerProps);
+    } else {
+        if (typeof resetInfoPanel === 'function') resetInfoPanel();
+    }
 }
 
 function handleAirportSelection(airport) {

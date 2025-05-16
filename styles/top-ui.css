@@ -1,38 +1,128 @@
+.top-ui-toggle-wrapper {
+  position: absolute;
+  top: 60px;
+  right: 10px;
+  z-index: 1102;
+}
+
+.top-ui-toggle {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px 0 0 8px;
+  border: none;
+  background: #2ecc71;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(60,60,60,0.10);
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.top-ui-toggle:hover {
+  background: #27ae60;
+}
+
+/* Adjust .top-ui so it doesn't include the toggle button */
 .top-ui {
   position: absolute;
   top: 60px;
   right: 10px;
   z-index: 1000;
   background: white;
-  padding: 10px 15px;
+  padding: 10px;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  width: 340px;
+  width: 120px;
   max-width: calc(100% - 20px);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
+  will-change: transform, opacity;
+  opacity: 1;
+}
+
+.top-ui.collapsed {
+  transform: translateX(110%);
+  transition: transform 0.3s;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.top-ui.expanded {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Make the toggle button always visible and fixed */
+.top-ui-toggle {
+  position: absolute;
+  top: 0;
+  left: -40px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px 0 0 8px;
+  border: none;
+  background: #2ecc71;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 1101; /* Above the tab */
+  box-shadow: 0 2px 8px rgba(60,60,60,0.10);
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* When tab is collapsed, keep the toggle button visible and clickable */
+.top-ui.collapsed .top-ui-toggle {
+  left: 0;
+  transform: translateX(40px); /* Move toggle button to the right edge */
+  z-index: 1102;
+  background: #2ecc71;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.top-ui-handle {
+  width: 100%;
+  height: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  z-index: 1001;
+  background: transparent;
+}
+
+.top-handle-indicator {
+  width: 40px;
+  height: 4px;
+  background: #e0e0e0;
+  border-radius: 2px;
+  margin: 8px 0;
+}
+
+/* Optional: make handle more visible in dark mode */
+body.dark-mode .top-handle-indicator {
+  background: #666;
 }
 
 .header {
-  text-align: center;
-  margin-bottom: 10px;
-}
-
-.header h1 {
-  color: #2c3e50;
-  margin-bottom: 5px;
-  font-size: 18px;
-}
-
-.header p {
-  color: #7f8c8d;
-  font-size: 12px;
+  display: none; /* Hide the SafeFlight and subtitle text */
 }
 
 .controls-wrapper {
   display: flex;
-  gap: 8px;
+  justify-content: center;   /* Center the buttons horizontally */
+  align-items: center;
+  gap: 16px;                 /* Slightly reduced gap for balance */
   margin-bottom: 10px;
 }
-
 
 .search-container {
   flex: 1;
@@ -53,16 +143,17 @@
 .search-btn, 
 .reset-zoom-btn, 
 .mode-btn {
-    width: 36px;
-    height: 36px;
+    width: 48px;      /* Increased from 36px */
+    height: 48px;     /* Increased from 36px */
     border: none;
-    border-radius: 4px;
+    border-radius: 8px;
     background: #f0f0f0;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: background-color 0.3s;
+    font-size: 24px;  /* Larger icon/text */
 }
 
 
@@ -72,23 +163,217 @@
 
 .risk-buttons {
     display: flex;
-    gap: 5px;
+    flex-direction: column;   /* Stack buttons vertically */
+    gap: 8px;                 /* Space between buttons */
+    align-items: stretch;     /* Make buttons fill the width */
+    width: 100%;
+    margin: 10px 0 0 0;
+    max-width: 120px;         /* Optional: limit width */
 }
 
 .risk-btn {
-    flex: 1;
-    padding: 5px;
+    width: 100%;
+    padding: 8px 0;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
     background-color: #e0e0e0;
-    font-size: 12px;
-    transition: all 0.3s ease;
+    font-size: 14px;
+    transition: all 0.2s;
+    margin: 0;
 }
 
 .risk-btn.active {
     background-color: #2ecc71;
     color: white;
     transform: scale(1.05);
+}
+
+.search-bar-fixed {
+  position: absolute;  
+  top: 10px;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  z-index: 1100;
+  background: #fff;
+  border-radius: 28px;
+  box-shadow: 0 2px 8px rgba(60,60,60,0.10);
+  padding: 0 8px 0 16px;
+  width: 400px;
+  height: 40px;
+}
+
+.search-bar-fixed input[type="text"] {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 15px;
+  padding: 8px 44px 8px 0; /* right padding for button space */
+  border-radius: 28px;
+  width: 100%;
+  height: 100%;
+  transition: none;
+  box-sizing: border-box;
+}
+
+.search-bar-fixed .search-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #f5f5f5;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #444;
+  cursor: pointer;
+  transition: background 0.2s;
+  box-shadow: none;
+  padding: 0;
+}
+
+.search-bar-fixed .search-btn:hover {
+  background: #e0e0e0;
+}
+
+/* Move Leaflet zoom controls to bottom right */
+.leaflet-control-zoom {
+  position: fixed !important;
+  right: 10px;   /* Smaller gap to the right edge */
+  bottom: 110px; /* Just above the bottom tab */
+  z-index: 999;  /* Lower than .bottom-ui (which is 1000) */
+  box-shadow: 0 2px 8px rgba(60,60,60,0.10);
+  border-radius: 12px;
+  background: #fff;
+}
+
+/* Remove background and shadow from Leaflet zoom controls */
+.leaflet-control-zoom,
+.leaflet-control-zoom a {
+  background: #fff !important;
+  box-shadow: none !important;
+  border: none !important;
+  outline: none !important;
+}
+
+/* Remove focus outline on click */
+.leaflet-control-zoom a:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove the recent-searches-dropdown styles if present */
+.recent-searches-dropdown,
+.recent-searches-dropdown .recent-item,
+.recent-searches-dropdown .recent-item:hover {
+  display: none !important;
+}
+
+/* Fix dark mode for the search bar */
+body.dark-mode .search-bar-fixed {
+  background: #2c2c2c;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+body.dark-mode .search-bar-fixed input[type="text"] {
+  background: transparent;
+  color: #fff;
+}
+
+body.dark-mode .search-bar-fixed .search-btn {
+  background: #3d3d3d;
+  color: #fff;
+}
+
+/* Prevent horizontal scroll on body */
+body {
+  overflow-x: hidden;
+}
+
+/* Show a small handle when collapsed */
+.top-ui-handle-collapsed {
+  position: fixed;
+  top: 80px;
+  right: 0;
+  width: 32px;
+  height: 60px;
+  background: #4cd137;
+  color: #fff;
+  border-radius: 0 8px 8px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2001;
+  font-size: 22px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+/* Improved vertical handle for collapsed top-ui */
+.top-ui-vertical-handle {
+  position: fixed;
+  top: 80px;
+  right: 0;
+  width: 16px;
+  height: 56px;
+  background: #bdbdbd;
+  border-radius: 0 28px 28px 0;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.13);
+  z-index: 2001;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.92;
+  transition: background 0.2s, opacity 0.2s;
+  border: 2px solid #e0e0e0;
+  border-left: none;
+}
+
+.top-ui-vertical-handle:hover {
+  background: #888;
+  opacity: 1;
+}
+
+.top-ui-vertical-handle .vertical-bar {
+  width: 6px;
+  height: 36px;
+  background: #fff;
+  border-radius: 3px;
+  box-shadow: 0 0 4px rgba(0,0,0,0.10);
+}
+
+body.dark-mode .top-ui-vertical-handle {
+  background: #444;
+  border-color: #222;
+}
+
+body.dark-mode .top-ui-vertical-handle:hover {
+  background: #666;
+}
+
+body.dark-mode .top-ui-vertical-handle .vertical-bar {
+  background: #bbb;
+}
+
+@media (max-width: 600px) {
+  .search-bar-fixed {
+    right: 10px;
+    top: 10px;
+    width: 90vw;
+    min-width: 0;
+    padding: 0 8px 0 12px;
+  }
+
+  .leaflet-control-zoom {
+    right: 10px;
+    bottom: 120px;
+  }
 }
 

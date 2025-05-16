@@ -1,48 +1,52 @@
 function initMap() {
     if (!window.state) {
-        console.error('window.state is not initialized. Ensure init.js is loaded before map.js.');
-        return;
+        window.state = {};
     }
 
-    // Check if a map instance already exists and remove it
+    // Remove existing map if present
     if (window.state.map) {
         window.state.map.remove();
         window.state.map = null;
     }
 
-    // Initialize the map
+    // Set bounds to the visible world (hard border)
+    const worldBounds = L.latLngBounds(
+        L.latLng(-85, -180), // Southwest
+        L.latLng(85, 180)    // Northeast
+    );
+
     window.state.map = L.map('map', {
-        minZoom: 2,  
-        maxZoom: 8,  
-        maxBounds: L.latLngBounds(
-            //corner bounds
-            L.latLng(-85, -180),
-            L.latLng(85, 180)   
-        ),
-        maxBoundsViscosity: 1.0,
-        wheelDebounceTime: 150,
-        wheelPxPerZoomLevel: 120,
+        center: [20, 0],
+        zoom: 3,
+        minZoom: 3,
+        maxZoom: 8,
         preferCanvas: true,
         zoomSnap: 0.5,
         zoomDelta: 0.5,
-        bounceAtZoomLimits: true,
-        worldCopyJump: true,
+        bounceAtZoomLimits: false, // Prevent bouncing at the edge
+        wheelDebounceTime: 150,
+        wheelPxPerZoomLevel: 120,
         fadeAnimation: true,
         markerZoomAnimation: true,
         zoomAnimation: true,
         renderer: L.canvas({
             padding: 0.5,
             tolerance: 10
-        })
-    }).setView([20, 0], 3);
+        }),
+        zoomControl: false,
+        maxBounds: worldBounds,      // Hard border: can't scroll out of the map
+        maxBoundsViscosity: 1.0      // 1.0 = hard limit, can't pan outside
+    });
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+    // Add tile layer with no horizontal wrapping
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         attribution: '©OpenStreetMap, ©CartoDB',
         maxZoom: 19,
-        keepBuffer: 2,
-        updateWhenIdle: true,
-        updateWhenZooming: false
+        noWrap: true // Prevent infinite horizontal panning
     }).addTo(window.state.map);
+
+    // Add zoom control to bottom right
+    L.control.zoom({ position: 'bottomright' }).addTo(window.state.map);
 
     loadGeoJSON();
 }
@@ -56,93 +60,107 @@ async function loadGeoJSON(retryCount = 3) {
     const BACKUP_URL = 'https://datahub.io/core/geo-countries/r/countries.geojson';
     const HEALTH_API_URL = 'https://disease.sh/v3/covid-19/countries';
 
-    try {
-        // Fetch health data
-        const healthResponse = await fetch(HEALTH_API_URL);
-        if (!healthResponse.ok) throw new Error(`Health API error: ${healthResponse.status}`);
-        const healthData = await healthResponse.json();
+    // Fetch health data
+    const healthResponse = await fetch(HEALTH_API_URL);
+    if (!healthResponse.ok) throw new Error(`Health API error: ${healthResponse.status}`);
+    const healthData = await healthResponse.json();
 
-        // Map health data by country
-        const healthMap = {};
-        healthData.forEach(country => {
-            healthMap[country.countryInfo.iso3] = {
-                cases: country.cases,
-                deaths: country.deaths,
-                recovered: country.recovered
-            };
-        });
-
-        // Debugging: Log health data mapping
-        console.log('Health data mapping:', healthMap);
-
-        for (let i = 0; i < retryCount; i++) {
-            try {
-                const response = await fetch(i === 0 ? PRIMARY_URL : BACKUP_URL);
-                if (!response.ok) throw new Error(`GeoJSON error: ${response.status}`);
-
-                const data = await response.json();
-                if (!data || !data.features) throw new Error('Invalid GeoJSON data');
-
-                // Update GeoJSON with health data and assign risk levels
-                data.features.forEach(feature => {
-                    const isoCode = feature.properties['ISO3166-1-Alpha-3']; // Corrected property name
-                    const healthData = healthMap[isoCode] || { cases: 0, deaths: 0, recovered: 0 };
-                    feature.properties.cases = healthData.cases;
-                    feature.properties.deaths = healthData.deaths;
-                    feature.properties.recovered = healthData.recovered;
-
-                    // Assign risk level based on cases
-                    if (healthData.cases > 1000000) {
-                        feature.properties.riskLevel = 'high';
-                    } else if (healthData.cases > 50000) {
-                        feature.properties.riskLevel = 'medium';
-                    } else {
-                        feature.properties.riskLevel = 'low';
-                    }
-
-                    // Debugging: Log each feature's properties
-                    console.log('Feature properties after update:', feature.properties);
-                });
-
-                // Apply styles based on cases
-                window.state.geojsonLayer = L.geoJSON(data, {
-                    style: (feature) => {
-                        const cases = feature.properties.cases;
-                        let fillColor;
-                        if (cases > 1000000) fillColor = '#800026'; // High cases
-                        else if (cases > 500000) fillColor = '#BD0026';
-                        else if (cases > 100000) fillColor = '#E31A1C';
-                        else if (cases > 50000) fillColor = '#FC4E2A';
-                        else if (cases > 10000) fillColor = '#FD8D3C';
-                        else if (cases > 1000) fillColor = '#FEB24C';
-                        else fillColor = '#FFEDA0'; // Low cases
-
-                        return {
-                            fillColor,
-                            weight: 1,
-                            opacity: 1,
-                            color: 'white',
-                            dashArray: '3',
-                            fillOpacity: 0.7
-                        };
-                    },
-                    onEachFeature: onEachFeature,
-                    bubblingMouseEvents: false
-                }).addTo(window.state.map);
-
-                filterCountries('all');
-                loadingEl.classList.remove('active');
-                return;
-
-            } catch (error) {
-                console.error(`Attempt ${i + 1} failed:`, error);
-                loadingEl.textContent = `Retrying... (${i + 1}/${retryCount})`;
-                await new Promise(resolve => setTimeout(resolve, 1000)); // 1 sec wait
-            }
+    // Map health data by ISO3, but add monthly cases (parallel fetch)
+    const healthMap = {};
+    await Promise.all(healthData.map(async (country) => {
+        const iso3 = country.countryInfo.iso3;
+        let monthlyCases = 0;
+        try {
+            monthlyCases = await Promise.race([
+                getMonthlyCases(iso3),
+                new Promise(resolve => setTimeout(() => resolve(0), 2000)) // 2s timeout per country
+            ]);
+        } catch (e) {
+            monthlyCases = 0;
         }
+        healthMap[iso3] = {
+            cases: monthlyCases,
+            deaths: country.todayDeaths,
+            recovered: country.todayRecovered,
+            totalCases: country.cases
+        };
+    }));
 
-    } catch (error) {
-        console.error('Failed to load health data:', error);
+    // Debugging: Log health data mapping
+    console.log('Health data mapping:', healthMap);
+
+    // Alert if some country data may be missing
+    if (Object.keys(healthMap).length < healthData.length) {
+        alert('Some country data may be missing due to slow network or API limits.');
+    }
+
+    for (let i = 0; i < retryCount; i++) {
+        try {
+            const response = await fetch(i === 0 ? PRIMARY_URL : BACKUP_URL);
+            if (!response.ok) throw new Error(`GeoJSON error: ${response.status}`);
+
+            const data = await response.json();
+            if (!data || !data.features) throw new Error('Invalid GeoJSON data');
+
+            // Update GeoJSON with health data and assign risk levels
+            data.features.forEach(feature => {
+                const isoCode = feature.properties['ISO3166-1-Alpha-3'];
+                const healthData = healthMap[isoCode] || { cases: 0, deaths: 0, recovered: 0, totalCases: 0 };
+                feature.properties.cases = healthData.cases;
+                feature.properties.deaths = healthData.deaths;
+                feature.properties.recovered = healthData.recovered;
+                feature.properties.totalCases = healthData.totalCases;
+
+                // Assign risk level based on daily cases
+                if (healthData.cases > 10000) {
+                    feature.properties.riskLevel = 'high';
+                } else if (healthData.cases > 1000) {
+                    feature.properties.riskLevel = 'medium';
+                } else {
+                    feature.properties.riskLevel = 'low';
+                }
+
+                // Debugging: Log each feature's properties
+                console.log('Feature properties after update:', feature.properties);
+            });
+
+            // Remove previous layers if present
+            if (window.state.geojsonLayers) {
+                window.state.geojsonLayers.forEach(layer => window.state.map.removeLayer(layer));
+            }
+
+            // Prepare style and onEachFeature
+            const style = (feature) => {
+                const riskLevel = feature.properties.riskLevel;
+                let fillColor;
+                if (riskLevel === 'high') fillColor = '#ff4444';      // Red
+                else if (riskLevel === 'medium') fillColor = '#ffa726'; // Orange
+                else fillColor = '#66bb6a';                            // Green
+                return {
+                    fillColor,
+                    weight: 1,
+                    opacity: 1,
+                    color: 'white',
+                    dashArray: '3',
+                    fillOpacity: 0.7
+                };
+            };
+
+            // Use your addWrappedGeoJsonLayer utility
+            addWrappedGeoJsonLayer(data, style, onEachFeature);
+
+            // For compatibility with existing code, set geojsonLayer to the original
+            window.state.geojsonLayer = window.state.geojsonLayers[0];
+
+            filterCountries('all');
+            loadingEl.classList.remove('active');
+            return;
+
+        } catch (error) {
+            console.error(`Attempt ${i + 1} failed:`, error);
+            loadingEl.textContent = `Retrying... (${i + 1}/${retryCount})`;
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 1 sec wait
+        }
     }
 
     // if no workie, show error and enable manual retry
@@ -155,10 +173,10 @@ async function loadGeoJSON(retryCount = 3) {
 //map styles and utilities
 function getCountryStyle(riskLevel) {
     return {
-        weight: 1.5,        // Slightly thicker borders
-        opacity: 0.8,       // More opaque borders
-        color: '#fff',      // White borders
-        dashArray: '',      // No dashes
+        weight: 1.5,
+        opacity: 0.8,
+        color: '#fff',
+        dashArray: '',
         fillOpacity: 0.7,
         fillColor: {
             high: '#ff4444',
@@ -170,7 +188,9 @@ function getCountryStyle(riskLevel) {
 
 // map interaction handlers
 function onEachFeature(feature, layer) {
-    layer.bindTooltip(feature.properties.ADMIN || feature.properties.name, {
+    // Use ADMIN or NAME_EN for English
+    const englishName = feature.properties.ADMIN || feature.properties.NAME_EN || feature.properties.name;
+    layer.bindTooltip(englishName, {
         permanent: false,
         direction: 'center',
         className: 'country-label',
@@ -214,66 +234,76 @@ function onFeatureClick(e) {
 
     elements.location.textContent = country;
     elements.disease.textContent = 'COVID-19';
-    elements.cases.textContent = `Cases: ${cases}`;
+    elements.cases.textContent = `Cases this month: ${cases}`;
 
-    // Adjust map bounds
+    // Adjust map bounds with a drastic zoom but keep the whole country in frame with extra space
+    let fitBounds = bounds;
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
+
+    // For USA, use custom bounds to exclude Alaska and Hawaii
     if (country === "United States of America" || country === "United States") {
-        // Custom bounds for USA to exclude Alaska and Hawaii
         window.state.map.fitBounds([
             [24.396308, -125.000000], // Southwest point
             [49.384358, -66.934570]   // Northeast point
         ], {
             maxZoom: 4,
-            padding: [50, 50],
+            padding: [120, 120], // Extra space
             animate: true,
-            duration: 1
+            duration: 1.2
         });
-    } else {
-        const boundsArea = Math.abs(bounds.getNorth() - bounds.getSouth()) * 
-                          Math.abs(bounds.getEast() - bounds.getWest());
-        
-
-        //maofix: for countries like the USA or Norway that is near the border or big countries like Russia
-        // check if country crosses the date line
-        const crossesDateLine = bounds.getWest() > bounds.getEast();
-        
-        if (crossesDateLine) {
-            const adjustedBounds = L.latLngBounds(
-                L.latLng(bounds.getSouth(), bounds.getWest()),
-                L.latLng(bounds.getNorth(), bounds.getEast() + 360)
-            );
-            window.state.map.fitBounds(adjustedBounds, {
-                maxZoom: Math.min(6, Math.max(2, 10 - Math.log2(boundsArea))),
-                padding: [50, 50],
-                animate: true,
-                duration: 1
-            });
-        } else {
-            window.state.map.fitBounds(bounds, {
-                maxZoom: Math.min(6, Math.max(2, 10 - Math.log2(boundsArea))),
-                padding: [50, 50],
-                animate: true,
-                duration: 1
-            });
-        }
+        return;
     }
+
+    // For countries crossing the dateline, adjust bounds
+    const crossesDateLine = sw.lng > ne.lng;
+    if (crossesDateLine) {
+        fitBounds = L.latLngBounds(
+            [sw.lat, sw.lng],
+            [ne.lat, ne.lng + 360]
+        );
+    }
+
+    // Drastic zoom: allow up to zoom 7, but always fit the whole country with extra padding
+    window.state.map.fitBounds(fitBounds, {
+        maxZoom: 7,
+        padding: [120, 120], // Extra space around the country
+        animate: true,
+        duration: 1.2
+    });
 }
 
 function filterCountries(riskLevel) {
-    if (!window.state.geojsonLayer) return;
+    if (!window.state.geojsonLayers) return;
     window.state.currentRiskFilter = riskLevel;
-    
-    const highlightColor = document.body.classList.contains('dark-mode') ? '#fff' : '#000';
-    
-    window.state.geojsonLayer.eachLayer((layer) => {
-        const countryRisk = layer.feature.properties.riskLevel;
-        const styles = riskLevel === 'all' 
-            ? { opacity: 1, fillOpacity: 0.7 }
-            : countryRisk === riskLevel 
-                ? { opacity: 1, fillOpacity: 0.9, weight: 2, color: highlightColor, dashArray: '' }
-                : { opacity: 0.2, fillOpacity: 0.1, weight: 1, color: 'white', dashArray: '3' };
-        
-        layer.setStyle(styles);
+
+    window.state.geojsonLayers.forEach(layerGroup => {
+        layerGroup.eachLayer((layer) => {
+            const countryRisk = layer.feature.properties.riskLevel;
+            // Always reset to default style first to clear any previous highlight
+            layerGroup.resetStyle(layer);
+
+            // Now apply highlight if needed
+            if (riskLevel !== 'all' && countryRisk === riskLevel) {
+                const highlightColor = document.body.classList.contains('dark-mode') ? '#fff' : '#000';
+                layer.setStyle({
+                    opacity: 1,
+                    fillOpacity: 0.9,
+                    weight: 2,
+                    color: highlightColor,
+                    dashArray: ''
+                });
+            } else if (riskLevel !== 'all') {
+                layer.setStyle({
+                    opacity: 0.2,
+                    fillOpacity: 0.1,
+                    weight: 1,
+                    color: 'white',
+                    dashArray: '3'
+                });
+            }
+            // If 'all', the resetStyle above is enough (default color restored)
+        });
     });
 }
 
@@ -283,14 +313,8 @@ function updateInfoPanel(properties) {
     const countryName = properties.ADMIN || properties.name || 'Unknown';
     document.querySelector('.info-value.location').textContent = countryName;
     document.querySelector('.info-value.disease').textContent = 'COVID-19';
-    document.querySelector('.info-value.cases').textContent = properties.cases || '0';
+    document.querySelector('.info-value.cases').textContent = `Cases this month: ${properties.cases}`;
     updateNewsPanel(countryName);
-    // Remove CDC summary always (will be shown by news panel logic)
-    let infoPanel = document.querySelector('.info-panel');
-    if (infoPanel) {
-        let cdcDiv = infoPanel.querySelector('.cdc-nndss-summary');
-        if (cdcDiv) cdcDiv.remove();
-    }
 }
 
 async function loadHealthEvents() {
@@ -415,7 +439,57 @@ async function fetchAndDisplayNNDSSSummary(onlyUS = false) {
     }
 }
 
+// Shift all coordinates of a feature by given degrees longitude
+function shiftFeatureLongitude(feature, shift) {
+    const newFeature = JSON.parse(JSON.stringify(feature));
+    function shiftCoords(coords) {
+        return coords.map(c =>
+            Array.isArray(c[0])
+                ? shiftCoords(c)
+                : [c[0] + shift, c[1]]
+        );
+    }
+    if (newFeature.geometry.type === "Polygon") {
+        newFeature.geometry.coordinates = shiftCoords(newFeature.geometry.coordinates);
+    } else if (newFeature.geometry.type === "MultiPolygon") {
+        newFeature.geometry.coordinates = newFeature.geometry.coordinates.map(shiftCoords);
+    }
+    return newFeature;
+}
+
 // Call after map loads
 initMap();
 loadHealthEvents();
 fetchAndDisplayNNDSSSummary();
+
+// Replace addWrappedGeoJsonLayer with a single-world version
+function addWrappedGeoJsonLayer(data, style, onEachFeature) {
+    // Remove previous layers if present
+    if (window.state.geojsonLayers) {
+        window.state.geojsonLayers.forEach(layer => window.state.map.removeLayer(layer));
+    }
+
+    // Only add the original world (no wrapping)
+    const original = L.geoJSON(data, { style, onEachFeature }).addTo(window.state.map);
+
+    window.state.geojsonLayers = [original];
+    window.state.geojsonLayer = original;
+}
+
+async function getMonthlyCases(iso3) {
+    try {
+        const res = await fetch(`https://disease.sh/v3/covid-19/historical/${iso3}?lastdays=31`);
+        if (!res.ok) return 0;
+        const data = await res.json();
+        if (!data.timeline || !data.timeline.cases) return 0;
+        const casesArr = Object.values(data.timeline.cases);
+        // Calculate new cases for each day, then sum last 30 days
+        let monthlyCases = 0;
+        for (let i = 1; i < casesArr.length; i++) {
+            monthlyCases += Math.max(0, casesArr[i] - casesArr[i - 1]);
+        }
+        return monthlyCases;
+    } catch (e) {
+        return 0;
+    }
+}

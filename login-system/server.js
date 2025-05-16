@@ -44,11 +44,10 @@ async function updateCountryRiskCache() {
         const data = await res.json();
         countryRiskCache = {};
         data.forEach(country => {
-            // Assign risk level based on cases (same as frontend)
+            // Assign risk level based on daily cases
             let riskLevel = 'low';
-            if (country.cases > 1000000) riskLevel = 'high';
-            else if (country.cases > 50000) riskLevel = 'medium';
-            // Map by country name (lowercase for easier matching)
+            if (country.todayCases > 10000) riskLevel = 'high';
+            else if (country.todayCases > 1000) riskLevel = 'medium';
             countryRiskCache[country.country.toLowerCase()] = riskLevel;
         });
         lastCacheTime = Date.now();
