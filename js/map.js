@@ -60,99 +60,107 @@ async function loadGeoJSON(retryCount = 3) {
     const BACKUP_URL = 'https://datahub.io/core/geo-countries/r/countries.geojson';
     const HEALTH_API_URL = 'https://disease.sh/v3/covid-19/countries';
 
-    try {
-        // Fetch health data
-        const healthResponse = await fetch(HEALTH_API_URL);
-        if (!healthResponse.ok) throw new Error(`Health API error: ${healthResponse.status}`);
-        const healthData = await healthResponse.json();
+    // Fetch health data
+    const healthResponse = await fetch(HEALTH_API_URL);
+    if (!healthResponse.ok) throw new Error(`Health API error: ${healthResponse.status}`);
+    const healthData = await healthResponse.json();
 
-        // Map health data by country
-        const healthMap = {};
-        healthData.forEach(country => {
-            healthMap[country.countryInfo.iso3] = {
-                cases: country.cases,
-                deaths: country.deaths,
-                recovered: country.recovered
-            };
-        });
+    // Map health data by ISO3, but add monthly cases (parallel fetch)
+    const healthMap = {};
+    await Promise.all(healthData.map(async (country) => {
+        const iso3 = country.countryInfo.iso3;
+        let monthlyCases = 0;
+        try {
+            monthlyCases = await Promise.race([
+                getMonthlyCases(iso3),
+                new Promise(resolve => setTimeout(() => resolve(0), 2000)) // 2s timeout per country
+            ]);
+        } catch (e) {
+            monthlyCases = 0;
+        }
+        healthMap[iso3] = {
+            cases: monthlyCases,
+            deaths: country.todayDeaths,
+            recovered: country.todayRecovered,
+            totalCases: country.cases
+        };
+    }));
 
-        // Debugging: Log health data mapping
-        console.log('Health data mapping:', healthMap);
+    // Debugging: Log health data mapping
+    console.log('Health data mapping:', healthMap);
 
-        for (let i = 0; i < retryCount; i++) {
-            try {
-                const response = await fetch(i === 0 ? PRIMARY_URL : BACKUP_URL);
-                if (!response.ok) throw new Error(`GeoJSON error: ${response.status}`);
+    // Alert if some country data may be missing
+    if (Object.keys(healthMap).length < healthData.length) {
+        alert('Some country data may be missing due to slow network or API limits.');
+    }
 
-                const data = await response.json();
-                if (!data || !data.features) throw new Error('Invalid GeoJSON data');
+    for (let i = 0; i < retryCount; i++) {
+        try {
+            const response = await fetch(i === 0 ? PRIMARY_URL : BACKUP_URL);
+            if (!response.ok) throw new Error(`GeoJSON error: ${response.status}`);
 
-                // Update GeoJSON with health data and assign risk levels
-                data.features.forEach(feature => {
-                    const isoCode = feature.properties['ISO3166-1-Alpha-3']; // Corrected property name
-                    const healthData = healthMap[isoCode] || { cases: 0, deaths: 0, recovered: 0 };
-                    feature.properties.cases = healthData.cases;
-                    feature.properties.deaths = healthData.deaths;
-                    feature.properties.recovered = healthData.recovered;
+            const data = await response.json();
+            if (!data || !data.features) throw new Error('Invalid GeoJSON data');
 
-                    // Assign risk level based on cases
-                    if (healthData.cases > 1000000) {
-                        feature.properties.riskLevel = 'high';
-                    } else if (healthData.cases > 50000) {
-                        feature.properties.riskLevel = 'medium';
-                    } else {
-                        feature.properties.riskLevel = 'low';
-                    }
+            // Update GeoJSON with health data and assign risk levels
+            data.features.forEach(feature => {
+                const isoCode = feature.properties['ISO3166-1-Alpha-3'];
+                const healthData = healthMap[isoCode] || { cases: 0, deaths: 0, recovered: 0, totalCases: 0 };
+                feature.properties.cases = healthData.cases;
+                feature.properties.deaths = healthData.deaths;
+                feature.properties.recovered = healthData.recovered;
+                feature.properties.totalCases = healthData.totalCases;
 
-                    // Debugging: Log each feature's properties
-                    console.log('Feature properties after update:', feature.properties);
-                });
-
-                // Remove previous layers if present
-                if (window.state.geojsonLayers) {
-                    window.state.geojsonLayers.forEach(layer => window.state.map.removeLayer(layer));
+                // Assign risk level based on daily cases
+                if (healthData.cases > 10000) {
+                    feature.properties.riskLevel = 'high';
+                } else if (healthData.cases > 1000) {
+                    feature.properties.riskLevel = 'medium';
+                } else {
+                    feature.properties.riskLevel = 'low';
                 }
 
-                // Prepare style and onEachFeature
-                const style = (feature) => {
-                    const cases = feature.properties.cases;
-                    let fillColor;
-                    if (cases > 1000000) fillColor = '#800026';
-                    else if (cases > 500000) fillColor = '#BD0026';
-                    else if (cases > 100000) fillColor = '#E31A1C';
-                    else if (cases > 50000) fillColor = '#FC4E2A';
-                    else if (cases > 10000) fillColor = '#FD8D3C';
-                    else if (cases > 1000) fillColor = '#FEB24C';
-                    else fillColor = '#FFEDA0';
-                    return {
-                        fillColor,
-                        weight: 1,
-                        opacity: 1,
-                        color: 'white',
-                        dashArray: '3',
-                        fillOpacity: 0.7
-                    };
-                };
+                // Debugging: Log each feature's properties
+                console.log('Feature properties after update:', feature.properties);
+            });
 
-                // Use your addWrappedGeoJsonLayer utility
-                addWrappedGeoJsonLayer(data, style, onEachFeature);
-
-                // For compatibility with existing code, set geojsonLayer to the original
-                window.state.geojsonLayer = window.state.geojsonLayers[0];
-
-                filterCountries('all');
-                loadingEl.classList.remove('active');
-                return;
-
-            } catch (error) {
-                console.error(`Attempt ${i + 1} failed:`, error);
-                loadingEl.textContent = `Retrying... (${i + 1}/${retryCount})`;
-                await new Promise(resolve => setTimeout(resolve, 1000)); // 1 sec wait
+            // Remove previous layers if present
+            if (window.state.geojsonLayers) {
+                window.state.geojsonLayers.forEach(layer => window.state.map.removeLayer(layer));
             }
-        }
 
-    } catch (error) {
-        console.error('Failed to load health data:', error);
+            // Prepare style and onEachFeature
+            const style = (feature) => {
+                const riskLevel = feature.properties.riskLevel;
+                let fillColor;
+                if (riskLevel === 'high') fillColor = '#ff4444';      // Red
+                else if (riskLevel === 'medium') fillColor = '#ffa726'; // Orange
+                else fillColor = '#66bb6a';                            // Green
+                return {
+                    fillColor,
+                    weight: 1,
+                    opacity: 1,
+                    color: 'white',
+                    dashArray: '3',
+                    fillOpacity: 0.7
+                };
+            };
+
+            // Use your addWrappedGeoJsonLayer utility
+            addWrappedGeoJsonLayer(data, style, onEachFeature);
+
+            // For compatibility with existing code, set geojsonLayer to the original
+            window.state.geojsonLayer = window.state.geojsonLayers[0];
+
+            filterCountries('all');
+            loadingEl.classList.remove('active');
+            return;
+
+        } catch (error) {
+            console.error(`Attempt ${i + 1} failed:`, error);
+            loadingEl.textContent = `Retrying... (${i + 1}/${retryCount})`;
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 1 sec wait
+        }
     }
 
     // if no workie, show error and enable manual retry
@@ -165,10 +173,10 @@ async function loadGeoJSON(retryCount = 3) {
 //map styles and utilities
 function getCountryStyle(riskLevel) {
     return {
-        weight: 1.5,        // Slightly thicker borders
-        opacity: 0.8,       // More opaque borders
-        color: '#fff',      // White borders
-        dashArray: '',      // No dashes
+        weight: 1.5,
+        opacity: 0.8,
+        color: '#fff',
+        dashArray: '',
         fillOpacity: 0.7,
         fillColor: {
             high: '#ff4444',
@@ -226,7 +234,7 @@ function onFeatureClick(e) {
 
     elements.location.textContent = country;
     elements.disease.textContent = 'COVID-19';
-    elements.cases.textContent = `Cases: ${cases}`;
+    elements.cases.textContent = `Cases this month: ${cases}`;
 
     // Adjust map bounds with a drastic zoom but keep the whole country in frame with extra space
     let fitBounds = bounds;
@@ -302,18 +310,11 @@ function filterCountries(riskLevel) {
 // Patch: Only show CDC NNDSS summary when US is selected AND news panel is expanded
 // Remove CDC summary from updateInfoPanel
 function updateInfoPanel(properties) {
-    // Use ADMIN or NAME_EN for English
-    const countryName = properties.ADMIN || properties.NAME_EN || properties.name || 'Unknown';
+    const countryName = properties.ADMIN || properties.name || 'Unknown';
     document.querySelector('.info-value.location').textContent = countryName;
     document.querySelector('.info-value.disease').textContent = 'COVID-19';
-    document.querySelector('.info-value.cases').textContent = properties.cases || '0';
+    document.querySelector('.info-value.cases').textContent = `Cases this month: ${properties.cases}`;
     updateNewsPanel(countryName);
-    // Remove CDC summary always (will be shown by news panel logic)
-    let infoPanel = document.querySelector('.info-panel');
-    if (infoPanel) {
-        let cdcDiv = infoPanel.querySelector('.cdc-nndss-summary');
-        if (cdcDiv) cdcDiv.remove();
-    }
 }
 
 async function loadHealthEvents() {
@@ -473,4 +474,22 @@ function addWrappedGeoJsonLayer(data, style, onEachFeature) {
 
     window.state.geojsonLayers = [original];
     window.state.geojsonLayer = original;
+}
+
+async function getMonthlyCases(iso3) {
+    try {
+        const res = await fetch(`https://disease.sh/v3/covid-19/historical/${iso3}?lastdays=31`);
+        if (!res.ok) return 0;
+        const data = await res.json();
+        if (!data.timeline || !data.timeline.cases) return 0;
+        const casesArr = Object.values(data.timeline.cases);
+        // Calculate new cases for each day, then sum last 30 days
+        let monthlyCases = 0;
+        for (let i = 1; i < casesArr.length; i++) {
+            monthlyCases += Math.max(0, casesArr[i] - casesArr[i - 1]);
+        }
+        return monthlyCases;
+    } catch (e) {
+        return 0;
+    }
 }

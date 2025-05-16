@@ -5,18 +5,15 @@ window.state = {
     map: null
 };
 
-// initialize when DOM loads
 document.addEventListener('DOMContentLoaded', () => {
-    if (!state.map) { // Prevent double initialization
+    if (!state.map) {
         initMap();
     }
-    initializeAuth(); // Move this here to ensure DOM is fully loaded
+    initializeAuth();
     initializeEventListeners();
-    loadAirportsData();
     initializeTopUIHandle();
     initializeTopUIToggle();
 
-    // Remove CDC summary if present
     const infoPanel = document.querySelector('.info-panel');
     if (infoPanel) {
         const cdcDiv = infoPanel.querySelector('.cdc-nndss-summary');
@@ -24,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-//event listeners initialization
 function initializeEventListeners() {
     const elements = {
         search: document.getElementById('search'),
@@ -38,7 +34,6 @@ function initializeEventListeners() {
         return;
     }
 
-    // event handlers
     const handlers = {
         search: (e) => e.key === 'Enter' && performSearch(e.target.value.trim()),
         searchBtn: () => elements.search.value && performSearch(elements.search.value.trim()),
@@ -49,7 +44,6 @@ function initializeEventListeners() {
         },
         reset: () => {
             cleanupMarkers();
-            // Set to the maximum zoomed-out level
             if (window.state && window.state.map) {
                 const minZoom = window.state.map.getMinZoom ? window.state.map.getMinZoom() : 2;
                 window.state.map.setView([20, 0], minZoom);
@@ -58,7 +52,6 @@ function initializeEventListeners() {
         }
     };
 
-    // listeners
     elements.search.addEventListener('keypress', handlers.search);
     elements.searchBtn.addEventListener('click', handlers.searchBtn);
     elements.riskButtons.forEach(btn => btn.addEventListener('click', () => handlers.risk(btn)));
@@ -85,36 +78,32 @@ function initializeBottomUIHandlers() {
     const bottomUIHandle = document.querySelector('.bottom-ui-handle');
     let startY, startHeight;
 
-    // bottom ui expansion state
     window.state.isBottomUIExpanded = bottomUI.classList.contains('expanded');
 
     bottomUIHandle.addEventListener('click', () => {
         window.state.isBottomUIExpanded = !window.state.isBottomUIExpanded;
         bottomUI.classList.toggle('expanded', window.state.isBottomUIExpanded);
-        
-        // If expanding and we have a country selected, load its news
+
         if (window.state.isBottomUIExpanded) {
             const currentLocation = document.querySelector('.info-value.location').textContent;
             if (currentLocation && currentLocation !== 'Select area') {
                 updateNewsPanel(currentLocation);
-                showCdcSummaryIfUS(); // <-- CDC summary only for US and only when expanded
+                showCdcSummaryIfUS();
             }
         } else {
-            showCdcSummaryIfUS(); // Remove CDC summary if panel collapsed
+            showCdcSummaryIfUS();
         }
     });
 
-    // handle touch events for height diff
     bottomUIHandle.addEventListener('touchmove', (e) => {
         const touch = e.touches[0];
         const diff = startY - touch.clientY;
         const newHeight = Math.min(Math.max(startHeight + diff, 100), window.innerHeight * 0.9);
         bottomUI.style.height = `${newHeight}px`;
-        
+
         const isExpanded = newHeight > window.innerHeight * 0.3;
         bottomUI.classList.toggle('expanded', isExpanded);
-        
-        // update state and load news if newly expanded
+
         if (isExpanded !== window.state.isBottomUIExpanded) {
             window.state.isBottomUIExpanded = isExpanded;
             if (isExpanded) {
@@ -147,12 +136,11 @@ function initializeDarkMode() {
         const isDarkMode = body.classList.contains('dark-mode');
         darkModeToggle.querySelector('.mode-icon').textContent = isDarkMode ? '🌙' : '☀️';
         localStorage.setItem('darkMode', isDarkMode ? 'enabled' : 'disabled');
-        
-        // Update country highlights when dark mode changes
+
         if (state.currentRiskFilter !== 'all') {
             filterCountries(state.currentRiskFilter);
         }
-        
+
         if (state.map) {
             state.map.eachLayer(layer => {
                 if (layer instanceof L.TileLayer) layer.redraw();
@@ -171,18 +159,16 @@ function resetInfoPanel() {
     elements.location.textContent = 'Select area';
     elements.disease.textContent = '-';
     elements.cases.textContent = '-';
-    
-    //reset news panel if expanded
+
     if (state.isBottomUIExpanded) {
         const newsContainer = document.querySelector('.news-container');
         if (newsContainer) {
             newsContainer.innerHTML = '<div class="news-item"><p>Select a country to view health alerts.</p></div>';
         }
     }
-    showCdcSummaryIfUS(); // Always remove CDC summary on reset
+    showCdcSummaryIfUS();
 }
 
-//airport location for search tnx github
 function loadAirportsData() {
     console.log('Starting airport data load...');
     fetch('https://raw.githubusercontent.com/algolia/datasets/master/airports/airports.json')
@@ -195,7 +181,7 @@ function loadAirportsData() {
         .then(data => {
             console.log('Raw airport data:', data.length, 'entries');
             const validAirports = data.filter(airport => {
-                const isValid = airport && 
+                const isValid = airport &&
                     airport.name &&
                     airport.city &&
                     airport.country &&
@@ -203,31 +189,29 @@ function loadAirportsData() {
                     airport._geoloc &&
                     !isNaN(airport._geoloc.lat) &&
                     !isNaN(airport._geoloc.lng);
-                
+
                 if (!isValid) {
                     console.log('Invalid airport entry:', airport);
                 }
                 return isValid;
             });
-            
+
             console.log('Filtered valid airports:', validAirports.length);
-            
+
             if (validAirports.length === 0) {
                 throw new Error('No valid airports found in the data');
             }
-            
+
             onAirportsLoaded(validAirports);
         })
         .catch(error => {
             console.error('Error loading airports:', error);
-            // Try backup data source
             loadBackupAirportData();
         });
 }
 
 function loadBackupAirportData() {
     console.log('Loading backup airport data...');
-    // delete later (temp airport list)
     const backupData = [
         {
             name: "London Heathrow Airport",
@@ -245,16 +229,13 @@ function loadBackupAirportData() {
         },
 
     ];
-    
+
     onAirportsLoaded(backupData);
     console.log('Loaded backup airports:', backupData.length);
 }
 
-// Patch: Show CDC summary only when US is selected and news panel is expanded
-// (Call this after updateNewsPanel in bottomUIHandle click logic)
 function showCdcSummaryIfUS() {
     const currentLocation = document.querySelector('.info-value.location').textContent;
-    // Only show if US is selected and not 'Select area'
     if ((currentLocation === 'United States' || currentLocation === 'United States of America') && window.state.isBottomUIExpanded) {
         if (window.fetchAndDisplayNNDSSummary) {
             window.fetchAndDisplayNNDSSummary(true);
@@ -262,7 +243,6 @@ function showCdcSummaryIfUS() {
             fetchAndDisplayNNDSSummary(true);
         }
     } else {
-        // Remove CDC summary if not US, not expanded, or no country selected
         let infoPanel = document.querySelector('.info-panel');
         if (infoPanel) {
             let cdcDiv = infoPanel.querySelector('.cdc-nndss-summary');
@@ -276,7 +256,6 @@ function initializeTopUIHandle() {
     const topUIHandle = document.querySelector('.top-ui-handle');
     if (!topUI || !topUIHandle) return;
 
-    // Start expanded
     topUI.classList.add('expanded');
     topUI.classList.remove('collapsed');
 
@@ -286,11 +265,21 @@ function initializeTopUIHandle() {
         topUI.classList.toggle('expanded', isCollapsed);
 
         if (!isCollapsed) {
-            // Collapsing: lock scroll immediately
+            if (!document.querySelector('.top-ui-vertical-handle')) {
+                const verticalHandle = document.createElement('div');
+                verticalHandle.className = 'top-ui-vertical-handle';
+                verticalHandle.title = 'Show menu';
+                verticalHandle.innerHTML = `<div class="vertical-bar"></div>`;
+                verticalHandle.onclick = () => {
+                    topUI.classList.remove('collapsed');
+                    topUI.classList.add('expanded');
+                    verticalHandle.remove();
+                };
+                document.body.appendChild(verticalHandle);
+            }
             document.body.classList.add('top-ui-locked');
             document.documentElement.classList.add('top-ui-locked');
         } else {
-            // Expanding: wait for transition to finish before unlocking scroll
             const onTransitionEnd = () => {
                 document.body.classList.remove('top-ui-locked');
                 document.documentElement.classList.remove('top-ui-locked');
@@ -306,7 +295,6 @@ function initializeTopUIToggle() {
     const toggleBtn = document.getElementById('topUIToggleBtn');
     if (!topUI || !toggleBtn) return;
 
-    // Start expanded
     topUI.classList.add('expanded');
     topUI.classList.remove('collapsed');
 
@@ -316,7 +304,6 @@ function initializeTopUIToggle() {
         topUI.classList.toggle('collapsed', !isCollapsed);
         topUI.classList.toggle('expanded', isCollapsed);
 
-        // Prevent page scroll when tab is hidden
         if (!isCollapsed) {
             document.body.style.overflow = 'hidden';
         } else {

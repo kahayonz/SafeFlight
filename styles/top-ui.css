@@ -43,7 +43,8 @@
 }
 
 .top-ui.collapsed {
-  transform: translateX(140%);
+  transform: translateX(110%);
+  transition: transform 0.3s;
   opacity: 0.7;
   pointer-events: none;
 }
@@ -288,6 +289,77 @@ body.dark-mode .search-bar-fixed input[type="text"] {
 body.dark-mode .search-bar-fixed .search-btn {
   background: #3d3d3d;
   color: #fff;
+}
+
+/* Prevent horizontal scroll on body */
+body {
+  overflow-x: hidden;
+}
+
+/* Show a small handle when collapsed */
+.top-ui-handle-collapsed {
+  position: fixed;
+  top: 80px;
+  right: 0;
+  width: 32px;
+  height: 60px;
+  background: #4cd137;
+  color: #fff;
+  border-radius: 0 8px 8px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2001;
+  font-size: 22px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+/* Improved vertical handle for collapsed top-ui */
+.top-ui-vertical-handle {
+  position: fixed;
+  top: 80px;
+  right: 0;
+  width: 16px;
+  height: 56px;
+  background: #bdbdbd;
+  border-radius: 0 28px 28px 0;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.13);
+  z-index: 2001;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.92;
+  transition: background 0.2s, opacity 0.2s;
+  border: 2px solid #e0e0e0;
+  border-left: none;
+}
+
+.top-ui-vertical-handle:hover {
+  background: #888;
+  opacity: 1;
+}
+
+.top-ui-vertical-handle .vertical-bar {
+  width: 6px;
+  height: 36px;
+  background: #fff;
+  border-radius: 3px;
+  box-shadow: 0 0 4px rgba(0,0,0,0.10);
+}
+
+body.dark-mode .top-ui-vertical-handle {
+  background: #444;
+  border-color: #222;
+}
+
+body.dark-mode .top-ui-vertical-handle:hover {
+  background: #666;
+}
+
+body.dark-mode .top-ui-vertical-handle .vertical-bar {
+  background: #bbb;
 }
 
 @media (max-width: 600px) {
