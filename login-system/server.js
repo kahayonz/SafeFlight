@@ -5,6 +5,7 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const nodemailer = require('nodemailer');
 const cron = require('node-cron');
+const fetch = require('node-fetch'); // Add this line
 const User = require('./models/User');
 
 // Load environment variables
@@ -40,7 +41,13 @@ async function updateCountryRiskCache() {
     // Only update if cache is old
     if (Date.now() - lastCacheTime < CACHE_DURATION) return;
     try {
-        const res = await fetch('https://disease.sh/v3/covid-19/countries');
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
+
+        const res = await fetch('https://disease.sh/v3/covid-19/countries', { signal: controller.signal });
+        clearTimeout(timeout);
+
+        if (!res.ok) throw new Error(`API error: ${res.status}`);
         const data = await res.json();
         countryRiskCache = {};
         data.forEach(country => {
@@ -53,7 +60,8 @@ async function updateCountryRiskCache() {
         lastCacheTime = Date.now();
         console.log('Updated country risk cache');
     } catch (err) {
-        console.error('Failed to update country risk cache:', err);
+        console.error('Failed to update country risk cache:', err.message || err);
+        // Do not throw; just keep the old cache
     }
 }
 
